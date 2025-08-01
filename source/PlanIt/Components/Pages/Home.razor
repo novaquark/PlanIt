@@ -1,7 +1,97 @@
 ﻿@page "/"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using System.Security.Claims
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>PlanIt</h1>
 
-Welcome to your new app.
+@if (!(HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false))
+{
+    <p>Connected to P4 Plan as @HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value</p>
+}
+else
+{
+    <p>Please connect to P4 Plan</p>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @_errorMessage
+        </div>
+    }
+
+    <EditForm Model="@_loginModel" OnValidSubmit="Connect" FormName="LoginForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-2">
+            <label for="email">Email</label><br />
+            <InputText id="email" class="form-control form-control-sm w-25" @bind-Value="_loginModel.Email" />
+        </div>
+
+        <div class="mb-2">
+            <label for="password">Password</label><br />
+            <InputText id="password" type="password" class="form-control form-control-sm w-25" @bind-Value="_loginModel.Password" />
+        </div>
+
+        <input class="btn btn-primary" type="submit" value="Connect">
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel _loginModel { get; set; } = new();
+    private string _errorMessage = string.Empty;
+
+    private class LoginModel
+    {
+        [Required]
+        [DataType(DataType.EmailAddress)]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private async Task Connect()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+
+            var p4PlanClient = await P4PlanClientProvider.Connect(_loginModel.Email, _loginModel.Password);
+            if (p4PlanClient is null)
+            {
+                _errorMessage = "Bad credentials";
+                return;
+            }
+
+            var fullName = await p4PlanClient.ConnectedUserName();
+            var context = HttpContextAccessor.HttpContext;
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, fullName),
+                new Claim(ClaimTypes.Email, _loginModel.Email),
+                new Claim(ClaimTypes.NameIdentifier, _loginModel.Email.Split('@')[0]),
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await context.SignInAsync(principal);
+
+            NavigationManager.NavigateTo("/todolist", true);
+        }
+        catch (Exception)
+        {
+            _errorMessage = $"Login failed. Please check your credentials and try again.";
+        }
+    }
+}

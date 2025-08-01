@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178 d17.12
+VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlanIt", "PlanIt/PlanIt.csproj", "{609B981B-968D-4946-A1BA-A9522ED8993C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlanIt", "PlanIt\PlanIt.csproj", "{609B981B-968D-4946-A1BA-A9522ED8993C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P4PlanLib", "P4PlanLib\P4PlanLib.csproj", "{F14DFF97-640E-4BBF-BCC8-A7B725122C48}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{609B981B-968D-4946-A1BA-A9522ED8993C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{609B981B-968D-4946-A1BA-A9522ED8993C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{609B981B-968D-4946-A1BA-A9522ED8993C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F14DFF97-640E-4BBF-BCC8-A7B725122C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F14DFF97-640E-4BBF-BCC8-A7B725122C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F14DFF97-640E-4BBF-BCC8-A7B725122C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F14DFF97-640E-4BBF-BCC8-A7B725122C48}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

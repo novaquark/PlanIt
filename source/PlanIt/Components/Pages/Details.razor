@@ -1,0 +1,281 @@
+@page "/details/{id}"
+@using P4PlanLib.Model
+@using System.Security.Claims
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+@if (!(HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false))
+{
+    <div style="display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                min-height: 60vh; 
+                text-align: center; 
+                padding: 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+        <h2 style="color: #374151; margin-bottom: 1rem;">Authentication Required</h2>
+        <p style="color: #6b7280; margin-bottom: 2rem;">Please log in to P4 Plan to access this page.</p>
+        <NavLink href="/index.html" 
+        style="background: linear-gradient(135deg, #007acc, #005a99); 
+                        color: white; 
+                        padding: 0.75rem 1.5rem; 
+                        border-radius: 8px; 
+                        text-decoration: none; 
+                        font-weight: 600; 
+                        transition: all 0.2s ease;">
+            Go to Login
+        </NavLink>
+    </div>
+}
+else if (item == null)
+{
+    <div style="display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                min-height: 60vh; 
+                text-align: center; 
+                padding: 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+        <h2 style="color: #374151; margin-bottom: 1rem;">Loading Details</h2>
+        <p style="color: #6b7280;">Please wait while we fetch the item details...</p>
+        <div style="margin-top: 1rem;">
+            <div style="width: 40px; 
+                        height: 40px; 
+                        border: 3px solid #e5e7eb; 
+                        border-top: 3px solid #007acc; 
+                        border-radius: 50%; 
+                        animation: spin 1s linear infinite;"></div>
+        </div>
+    </div>
+
+    <style>
+        @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+        }
+    </style>
+}
+else
+{
+    <!-- Main container with improved spacing -->
+    <div style="max-width: 1400px; 
+                margin: 0 auto; 
+                padding: 1.5rem; 
+                min-height: 100vh;">
+
+        <!-- Breadcrumb area -->
+        <div style="height: 2.5rem; 
+                    margin-bottom: 1.5rem; 
+                    display: flex; 
+                    align-items: center;">
+            <!-- Breadcrumb will be added here -->
+        </div>
+
+        <!-- Main content grid with responsive layout -->
+        <div style="display: grid; 
+                    grid-template-columns: 2fr 1fr; 
+                    gap: 2rem; 
+                    align-items: start;
+                    margin-bottom: 1.5rem;"
+        class="desktop-layout">
+
+            <!-- Left column: Item Details + Child Items -->
+            <div style="display: flex; 
+                        flex-direction: column; 
+                        gap: 1rem;">
+
+                <ItemDetails Item="item" 
+                ShareButtonText="@shareButtonText" 
+                ShareAsync="ShareAsync" />
+
+                <ChildItems Items="parentChildren" 
+                CurrentItem="item" />
+            </div>
+
+            <!-- Right column: Comments -->
+            <CommentsSection Comments="comments" 
+            NewCommentText="@newCommentText"
+            PostingComment="postingComment"
+            PostCommentError="@postCommentError"
+            OnPostComment="PostCommentAsync"
+            OnNewCommentTextChanged="OnNewCommentTextChanged" />
+        </div>
+
+        <!-- Additional description for items with children -->
+        @if (parentChildren != null && parentChildren.Count > 0)
+        {
+            <div style="margin-top: 1rem;">
+                <h3 style="margin: 0 0 1rem 0; 
+                           color: #1a1a1a; 
+                           font-weight: 600; 
+                           font-size: 1.25rem;">
+                    Additional Description
+                </h3>
+
+                <div style="border-radius: 12px; 
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+                            border: 1px solid #e5e7eb; 
+                            background: #fff; 
+                            overflow: hidden;">
+
+                    <div style="padding: 2rem;">
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <div style="color: #374151; 
+                                        line-height: 1.6; 
+                                        white-space: pre-wrap; 
+                                        font-size: 0.875rem;">
+                                @item.Description
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="text-align: center; 
+                                        color: #9ca3af; 
+                                        font-style: italic; 
+                                        padding: 2rem 0;">
+                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📝</div>
+                                <p style="margin: 0; font-size: 0.875rem;">No additional description available.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Responsive styles -->
+    <style>
+        /* layout adjustments */
+        @@media (max-width: 768px) {
+        .desktop-layout {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+        }
+
+        .desktop-layout > div:first-child {
+        gap: 1.5rem !important;
+        }
+        }
+
+        /* Improved scrollbar styling */
+        ::-webkit-scrollbar {
+        width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+        }
+    </style>
+}
+
+@code {
+    [Parameter]
+    public string? id { get; set; }
+
+    private Item? item;
+    private List<Comment> comments = new();
+    private string newCommentText = string.Empty;
+    private bool postingComment = false;
+    private string postCommentError = string.Empty;
+    private string shareButtonText = "Share";
+    private List<Item>? parentChildren = null;
+    private P4PlanLib.IP4PlanClient? p4PlanClient;
+
+    private async Task OnNewCommentTextChanged(string value)
+    {
+        newCommentText = value;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            if (p4PlanClient is null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            item = await p4PlanClient.GetBacklogItem(id);
+        }
+    }
+
+    private async Task ShareAsync()
+    {
+        try
+        {
+            var currentUrl = Navigation.Uri;
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", currentUrl);
+
+            shareButtonText = "Copied!";
+            StateHasChanged();
+
+            await Task.Delay(3000);
+            shareButtonText = "Share";
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            shareButtonText = "Copy failed";
+            StateHasChanged();
+
+            await Task.Delay(3000);
+            shareButtonText = "Share";
+            StateHasChanged();
+        }
+    }
+
+    private async Task PostCommentAsync(string commentText)
+    {
+        if (p4PlanClient is null)
+            return;
+
+        postCommentError = string.Empty;
+        postingComment = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(id))
+            {
+                var success = await p4PlanClient.PostComment(id, commentText);
+                if (success)
+                {
+                    newCommentText = string.Empty;
+                    comments = await p4PlanClient.GetComments(id);
+                }
+                else
+                {
+                    postCommentError = "Failed to post comment.";
+                }
+            }
+            else
+            {
+                postCommentError = "Invalid item id.";
+            }
+        }
+        catch (Exception ex)
+        {
+            postCommentError = ex.Message;
+        }
+        postingComment = false;
+        StateHasChanged();
+    }
+}

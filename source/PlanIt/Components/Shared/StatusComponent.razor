@@ -1,0 +1,28 @@
+@if (!string.IsNullOrWhiteSpace(Status))
+{
+    <span style="background: #dcfce7; 
+                 color: #166534; 
+                 padding: 0.25rem 0.5rem; 
+                 border-radius: 4px; 
+                 font-size: 0.75rem; 
+                 font-weight: 500;
+                 white-space: nowrap;">
+        @Status
+    </span>
+}
+else
+{
+    <span style="color: #9ca3af; 
+                 font-style: italic; 
+                 font-size: 0.875rem;">
+        @EmptyText
+    </span>
+}
+
+@code {
+    [Parameter]
+    public string? Status { get; set; }
+
+    [Parameter]
+    public string EmptyText { get; set; } = "No status";
+}

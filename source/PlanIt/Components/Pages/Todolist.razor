@@ -1,0 +1,175 @@
+﻿@page "/todolist"
+@using GraphQL
+@using System.Security.Claims
+@inject HttpClient Http
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Todolist</PageTitle>
+
+<h1>My Todo list</h1>
+
+@if(!(HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false))
+{
+    <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
+} else if(!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @*     <CheckboxInput Label="Show empty categories" @bind-Value=@showEmptyCategories /> *@
+    <br/>
+
+    @if(myOpenShowstoppers.Any() || showEmptyCategories)
+    {
+        <MudTable Items="myOpenShowstoppers" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
+            <ToolBarContent>
+                <MudText Typo="Typo.h4">‼ Showstoppers assigned to me (need to fix ASAP) ‼</MudText>
+                <i>Showstopper: high priority subject that blocks a lot of people, it needs to be fixed ASAP</i>
+                <MudSpacer />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Severity</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span></MudTd>
+                <MudTd DataLabel="Priority">@context.Severity</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <br />
+    }
+
+    @if (mySprintItems.Any() || showEmptyCategories)
+    {
+        <MudTable Items="mySprintItems" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">My sprint tasks</MudText>
+                <MudSpacer />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Priority</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.EstimatedDays)">Hours remaining</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    @if (string.IsNullOrEmpty(context.SubprojectPath))
+                    {
+                        <span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                    }
+                    else
+                    {
+                        <span>@context.SubprojectPath / <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
+                <MudTd DataLabel="Work remaining">@context.WorkRemaining</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <br />
+    }
+    else
+    {
+        <h3>Seems my scheduled sprint tasks are done ! 💪</h3>
+        <br />
+    }
+
+    @if (myOpenBugs.Any() || showEmptyCategories)
+    {
+        <MudTable Items="myOpenBugs" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by" Style="background-color: lightyellow;">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">Bugs assigned to me</MudText>
+                <MudSpacer />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Severity</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name"><span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span></MudTd>
+                <MudTd DataLabel="Priority">@context.Severity</MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <br />
+    }
+
+    @if (myBacklog.Any() || showEmptyCategories)
+    {
+        <MudTable Items="myBacklog" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
+            <ToolBarContent>
+                <MudText Typo="Typo.h5">My backlog</MudText>
+                <MudSpacer />
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Priority</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.EstimatedDays)">Est. days</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    @if (string.IsNullOrEmpty(context.SubprojectPath))
+                    {
+                        <span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                    }
+                    else
+                    {
+                        <span>@context.SubprojectPath / <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
+                <MudTd DataLabel="Est. days">@context.EstimatedDays</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+
+    } else if(!mySprintItems.Any()) // No backlog and no sprint tasks. Else just hiding
+    {
+        <h3>Seems I don't have any backlog assigned to me, I should contact my lead or take items from the backlog</h3>
+        <br />
+    }    
+}
+
+@code {
+    private List<P4PlanLib.Model.Item>? mySprintItems { get; set; }
+    private List<P4PlanLib.Model.Item>? myOpenBugs { get; set; }
+    private List<P4PlanLib.Model.Item>? myOpenShowstoppers { get; set; }
+    private List<P4PlanLib.Model.Item>? myBacklog { get; set; }
+    private bool loaded { get; set; } = false;
+    private bool showEmptyCategories { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            if (p4PlanClient is null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"S29\"");
+            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assign tag\":\"{displayName}\"");
+            myBacklog = myBacklog.Except(mySprintItems, new P4PlanLib.ItemComparer()).ToList();
+            loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateToDetails(string id)
+    {
+        Navigation.NavigateTo($"/details/{id}");
+    }
+}

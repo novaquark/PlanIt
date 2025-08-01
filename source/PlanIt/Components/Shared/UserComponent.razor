@@ -1,0 +1,112 @@
+@using P4PlanLib.Model
+
+@if (Users != null && Users.Any())
+{
+    @if (DisplayMode == UserDisplayMode.Tags)
+    {
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            @foreach (var user in Users.Where(u => !string.IsNullOrWhiteSpace(u)))
+            {
+                <span style="background: #dbeafe; 
+                             color: #1e40af; 
+                             padding: 0.25rem 0.5rem; 
+                             border-radius: 4px; 
+                             font-size: 0.875rem; 
+                             font-weight: 500;">
+                    @user
+                </span>
+            }
+        </div>
+    }
+    else if (DisplayMode == UserDisplayMode.Avatars)
+    {
+        <div style="display: flex; 
+                    flex-wrap: wrap; 
+                    gap: 0.25rem; 
+                    align-items: center;">
+            @for (int i = 0; i < Math.Min(Users.Count(), MaxAvatars); i++)
+            {
+                var user = Users.ElementAt(i);
+                if (!string.IsNullOrWhiteSpace(user))
+                {
+                    <div style="width: 24px; 
+                                height: 24px; 
+                                border-radius: 50%; 
+                                background: linear-gradient(135deg, #007acc, #005a99); 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                color: white; 
+                                font-weight: 600; 
+                                font-size: 0.625rem; 
+                                flex-shrink: 0;"
+                         title="@user">
+                        @user.Substring(0, 1).ToUpper()
+                    </div>
+                }
+            }
+            @if (Users.Count() > MaxAvatars)
+            {
+                <span style="color: #6b7280; 
+                             font-size: 0.75rem; 
+                             font-weight: 500;">
+                    +@(Users.Count() - MaxAvatars)
+                </span>
+            }
+        </div>
+    }
+    else if (DisplayMode == UserDisplayMode.CommentAvatar)
+    {
+        var user = Users.First();
+        if (!string.IsNullOrWhiteSpace(user))
+        {
+            <div style="width: 32px; 
+                        height: 32px; 
+                        border-radius: 50%; 
+                        background: linear-gradient(135deg, #007acc, #005a99); 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        color: white; 
+                        font-weight: 600; 
+                        font-size: 0.875rem; 
+                        flex-shrink: 0;">
+                @user.Substring(0, 1).ToUpper()
+            </div>
+        }
+    }
+    else
+    {
+        <span>@string.Join(", ", Users.Where(u => !string.IsNullOrWhiteSpace(u)))</span>
+    }
+}
+else
+{
+    <span style="color: #9ca3af; 
+                 font-style: italic; 
+                 font-size: 0.875rem;">
+        @EmptyText
+    </span>
+}
+
+@code {
+    [Parameter]
+    public IEnumerable<string>? Users { get; set; }
+
+    [Parameter]
+    public UserDisplayMode DisplayMode { get; set; } = UserDisplayMode.Text;
+
+    [Parameter]
+    public int MaxAvatars { get; set; } = 3;
+
+    [Parameter]
+    public string EmptyText { get; set; } = "Not assigned";
+
+    public enum UserDisplayMode
+    {
+        Text,
+        Tags,
+        Avatars,
+        CommentAvatar
+    }
+}
