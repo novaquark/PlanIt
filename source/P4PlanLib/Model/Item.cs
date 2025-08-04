@@ -7,6 +7,16 @@ public class Item
     [JsonProperty("id")]
     public string Id { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Temporary value to sort among multiple requests (like todolist)
+    /// </summary>
+    public int Rank { get; set; } = 0;
+
+    /// <summary>
+    /// Can be Backlog, Bug, Sprint, Showstopper
+    /// </summary>
+    public string Type { get; set; } = string.Empty;
+
     [JsonProperty("projectID")]
     public string ProjectID { get; set; } = string.Empty;
 

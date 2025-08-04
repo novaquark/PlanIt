@@ -19,122 +19,42 @@
 }
 else
 {
-    @*     <CheckboxInput Label="Show empty categories" @bind-Value=@showEmptyCategories /> *@
-    <br/>
+    <MudText>Ordered by Showstoppers > Sprint tasks > Open bugs not in sprint > Backlog</MudText>
 
-    @if(myOpenShowstoppers.Any() || showEmptyCategories)
-    {
-        <MudTable Items="myOpenShowstoppers" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
-            <ToolBarContent>
-                <MudText Typo="Typo.h4">‼ Showstoppers assigned to me (need to fix ASAP) ‼</MudText>
-                <i>Showstopper: high priority subject that blocks a lot of people, it needs to be fixed ASAP</i>
-                <MudSpacer />
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Severity</MudTableSortLabel></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name"><span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span></MudTd>
-                <MudTd DataLabel="Priority">@context.Severity</MudTd>
-            </RowTemplate>
-        </MudTable>
+    <MudTable Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
+        <ColGroup>
+            <col style="width: 50px;" />
+            <col style="width: 50px;" />
+            <col />
+            <col style="width: 120px;" />
+            <col style="width: 120px;" />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Rank)"><MudTooltip Text="Rank is a value for Showstopper -> Sprint Items -> Bugs -> Backlog">Rank</MudTooltip></MudTableSortLabel></MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Priority</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.EstimatedDays)">Hours remaining</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Rank">@context.Rank</MudTd>
+            <MudTd DataLabel="Type" Style=@($"{GetTypeBackgroundColor(context.Type)}")><MudTooltip Text="@context.Type"><Blazicon Svg="TaskTypeToIcon(context.Type)" /></MudTooltip></MudTd>
+            <MudTd DataLabel="Name">
+                @if (string.IsNullOrEmpty(context.SubprojectPath))
+                {
+                    <span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                }
+                else
+                {
+                    <span>@context.SubprojectPath / <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
+            <MudTd DataLabel="Work remaining">@context.WorkRemaining</MudTd>
+        </RowTemplate>
+    </MudTable>
 
-        <br />
-    }
-
-    @if (mySprintItems.Any() || showEmptyCategories)
-    {
-        <MudTable Items="mySprintItems" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">My sprint tasks</MudText>
-                <MudSpacer />
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Priority</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.EstimatedDays)">Hours remaining</MudTableSortLabel></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name">
-                    @if (string.IsNullOrEmpty(context.SubprojectPath))
-                    {
-                        <span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
-                    }
-                    else
-                    {
-                        <span>@context.SubprojectPath / <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
-                <MudTd DataLabel="Work remaining">@context.WorkRemaining</MudTd>
-            </RowTemplate>
-        </MudTable>
-
-        <br />
-    }
-    else
-    {
-        <h3>Seems my scheduled sprint tasks are done ! 💪</h3>
-        <br />
-    }
-
-    @if (myOpenBugs.Any() || showEmptyCategories)
-    {
-        <MudTable Items="myOpenBugs" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by" Style="background-color: lightyellow;">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">Bugs assigned to me</MudText>
-                <MudSpacer />
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Severity</MudTableSortLabel></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name"><span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span></MudTd>
-                <MudTd DataLabel="Priority">@context.Severity</MudTd>
-            </RowTemplate>
-        </MudTable>
-
-        <br />
-    }
-
-    @if (myBacklog.Any() || showEmptyCategories)
-    {
-        <MudTable Items="myBacklog" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
-            <ToolBarContent>
-                <MudText Typo="Typo.h5">My backlog</MudText>
-                <MudSpacer />
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.Name)">Name</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.BeautifulPriority)">Priority</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x=>x.EstimatedDays)">Est. days</MudTableSortLabel></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name">
-                    @if (string.IsNullOrEmpty(context.SubprojectPath))
-                    {
-                        <span><MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
-                    }
-                    else
-                    {
-                        <span>@context.SubprojectPath / <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink></span>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
-                <MudTd DataLabel="Est. days">@context.EstimatedDays</MudTd>
-            </RowTemplate>
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
-
-    } else if(!mySprintItems.Any()) // No backlog and no sprint tasks. Else just hiding
-    {
-        <h3>Seems I don't have any backlog assigned to me, I should contact my lead or take items from the backlog</h3>
-        <br />
-    }    
+    <MudSpacer/>
 }
 
 @code {
@@ -142,6 +62,7 @@ else
     private List<P4PlanLib.Model.Item>? myOpenBugs { get; set; }
     private List<P4PlanLib.Model.Item>? myOpenShowstoppers { get; set; }
     private List<P4PlanLib.Model.Item>? myBacklog { get; set; }
+    private List<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
     private bool showEmptyCategories { get; set; }
 
@@ -158,11 +79,29 @@ else
                 return;
             }
 
+            var comparer = new P4PlanLib.ItemComparer();
+
             myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenBugs.ForEach(t => t.Type = "Bug");
             myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenShowstoppers.ForEach(t => t.Type = "Showstopper");
             mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"S29\"");
+            mySprintItems.ForEach(t => t.Type = "Sprint");
             myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assign tag\":\"{displayName}\"");
-            myBacklog = myBacklog.Except(mySprintItems, new P4PlanLib.ItemComparer()).ToList();
+            myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();
+            myBacklog.ForEach(t => t.Type = "Backlog");
+
+            rankedList = new List<P4PlanLib.Model.Item>();
+            rankedList.AddRange(myOpenShowstoppers);
+            rankedList.AddRange(mySprintItems.Except(rankedList, comparer));
+            rankedList.AddRange(myOpenBugs.Except(rankedList, comparer));
+            rankedList.AddRange(myBacklog.Except(rankedList, comparer));
+
+            for(var i = 0 ; i < rankedList.Count ; i++)
+            {
+                rankedList[i].Rank = i + 1;
+            }
+
             loaded = true;
             StateHasChanged();
         }
@@ -171,5 +110,27 @@ else
     private void NavigateToDetails(string id)
     {
         Navigation.NavigateTo($"/details/{id}");
+    }
+
+    private SvgIcon TaskTypeToIcon(string type)
+    {
+        return type switch
+        {
+            "Showstopper" => Lucide.OctagonMinus,
+            "Sprint" => Lucide.Rocket,
+            "Backlog" => Lucide.Clipboard,
+            "Bug" => Lucide.Bug,
+            _ => Lucide.CircleQuestionMark
+        };
+    }
+
+    private string GetTypeBackgroundColor(string type)
+    {
+        return type switch
+        {
+            "Showstopper" => "background: #EE8888;",
+            "Bug" => "background: #EEEE88;",
+            _ => ""
+        };
     }
 }
