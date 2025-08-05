@@ -19,8 +19,12 @@ You can assign to yourself 1 task at a time and once assigned, we expect the wor
 - 2 weeks for a task with 2 to 4 days time estimate
 - up to 3 weeks/1 month for larger 1 week time estimate tasks. **Don't grab these big tasks before the team agrees on it and you have already worked on smaller tasks on this project** 
 
-## Coding conventions
+## Contact
 
-> Code should be optimized for readability. Attach some custom style guide or reference some. i.e.:
+You can contact the team in the issues section, or on LinkedIn
+- [Alexandre Trachez](https://www.linkedin.com/in/alexandre-trachez-8a647459/) project owner 
+- [Tushar Patil](https://www.linkedin.com/in/29tusharpatil/) main point of contact in India, hiring
+
+## Coding conventions
 
 In order to sanitize coding standards, please follow [universal C# guidelines](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions).
