@@ -10,7 +10,7 @@
 
 <h1>My Todo list</h1>
 
-@if(!(HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false))
+@if(!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
 {
     <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
 } else if(!loaded)
