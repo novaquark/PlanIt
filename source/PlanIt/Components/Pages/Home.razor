@@ -11,7 +11,7 @@
 
 <h1>PlanIt</h1>
 
-@if (!(HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false))
+@if ((HttpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false) && P4PlanClientProvider.GetP4PlanClient(HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value) != null)
 {
     <p>Connected to P4 Plan as @HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value</p>
 }
