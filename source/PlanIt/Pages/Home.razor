@@ -1,0 +1,26 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using System.Security.Claims
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+
+<PageTitle>Home</PageTitle>
+
+<h1>PlanIt</h1>
+
+@if ((HttpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false) && P4PlanClientProvider.GetP4PlanClient(HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value) != null)
+{
+    <p>Connected to P4 Plan as @HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value</p>
+}
+else
+{
+    <p>Please connect to P4 Plan</p>
+    <MudButton Variant="Variant.Filled" Href="/login">Connect</MudButton>
+}
+
+@code {
+
+}

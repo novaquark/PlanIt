@@ -1,0 +1,129 @@
+﻿@page "/milestone"
+@using GraphQL
+@using System.Security.Claims
+@using System.Collections.ObjectModel
+@inject HttpClient Http
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IProjectDetailsService ProjectDetailsService
+
+<PageTitle>Next milestone</PageTitle>
+
+<h1>Next milestone</h1>
+
+@if(!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+{
+    <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
+} else if(!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
+        <ColGroup>
+            <col style="width: 50px;" />
+            <col style="width: 50px;" />
+            <col style="width: 50px;" />
+            <col />
+            <col style="width: 120px;" />
+            <col style="width: 120px;" />
+        </ColGroup>
+        <Columns>
+            <HierarchyColumn T="P4PlanLib.Model.Item" InitiallyExpandedFunc="@(x => false)" EnableHeaderToggle="true" />
+            <PropertyColumn Property="x => x.Rank" Title="Rank" Sortable="true" />
+            <PropertyColumn Property="x => x.Type" />
+            <PropertyColumn Property="x => x.Name" SortBy="@_sortBy" Filterable="true" Sortable="true" />
+            <PropertyColumn Property="x => x.BeautifulPriority" Title="Priority" />
+            <PropertyColumn Property="x => x.EstimatedDays" Title="Hours remaining" />
+        </Columns>
+        <ChildRowContent>
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">@context.Item.Name</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText>@context.Item.Name</MudText>
+                    <MudText>TODO details panel</MudText>
+                </MudCardContent>
+            </MudCard>
+        </ChildRowContent>
+    </MudDataGrid>
+
+    <MudSpacer/>
+}
+
+@code {
+    private ObservableCollection<P4PlanLib.Model.Item>? dashboardItems { get; set; }
+    private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
+    private bool loaded { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            if (p4PlanClient is null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            var comparer = new P4PlanLib.ItemComparer();
+
+            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
+
+            rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
+            foreach(var item in dashboardItems)
+            {
+                item.Type = "Bug";
+                rankedList.Add(item);
+            }
+
+            for(var i = 0 ; i < rankedList.Count ; i++)
+            {
+                rankedList[i].Rank = i + 1;
+            }
+
+            loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private Func<P4PlanLib.Model.Item, object> _sortBy => x =>
+    {
+        return x.Name;
+    };
+
+    private void NavigateToDetails(string id)
+    {
+        Navigation.NavigateTo($"/details/{id}");
+    }
+
+    private SvgIcon TaskTypeToIcon(string type)
+    {
+        return type switch
+        {
+            "Showstopper" => Lucide.OctagonMinus,
+            "Sprint" => Lucide.Rocket,
+            "Backlog" => Lucide.Clipboard,
+            "Bug" => Lucide.Bug,
+            _ => Lucide.CircleQuestionMark
+        };
+    }
+
+    private string GetTypeBackgroundColor(string type)
+    {
+        return type switch
+        {
+            "Showstopper" => "background: #EE8888;",
+            "Bug" => "background: #EEEE88;",
+            _ => ""
+        };
+    }
+}
