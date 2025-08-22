@@ -1,0 +1,23 @@
+﻿<MudNavMenu>
+
+    <style>
+        .nav-menu-category {
+            background: linear-gradient(100deg, #879CDB, #86B3D8);
+            color: #FAFAFA;
+            font-variant: small-caps;
+            text-align: center;
+            font-size: 13pt;
+        }
+    </style>
+
+    <MudNavLink Icon="@Icons.Material.Filled.Home" Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+
+    <AuthorizeView Roles="ConnectedUser">
+        <Authorized>
+            <div class="nav-menu-category">Dashboards</div>
+            <MudNavLink Icon="@Icons.Material.Filled.List" Href="/todolist" Match="NavLinkMatch.Prefix">Todolist</MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.ArrowForward" Href="/milestone" Match="NavLinkMatch.Prefix">Next milestone</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
+</MudNavMenu>

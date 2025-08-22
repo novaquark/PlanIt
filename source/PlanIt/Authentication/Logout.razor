@@ -1,0 +1,30 @@
+﻿@page "/logout"
+@using Microsoft.AspNetCore.Authentication
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+
+<div>
+    <span>You have been disconnected</span>
+</div>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var context = HttpContextAccessor.HttpContext;
+
+        if (context is null)
+            return;
+
+        if (context.User.Identity is null)
+            return;
+
+        if (context.User.Identity.IsAuthenticated)
+        {
+            await context.SignOutAsync();
+            NavigationManager.NavigateTo("/logout", true);
+        }
+    }
+}

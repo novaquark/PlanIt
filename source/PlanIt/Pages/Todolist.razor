@@ -85,7 +85,7 @@ else
             myOpenBugs.ForEach(t => t.Type = "Bug");
             myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
             myOpenShowstoppers.ForEach(t => t.Type = "Showstopper");
-            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"S29\"");
+            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"S30\"");
             mySprintItems.ForEach(t => t.Type = "Sprint");
             myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assign tag\":\"{displayName}\"");
             myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();

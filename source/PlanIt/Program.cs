@@ -1,21 +1,41 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.ResponseCompression;
 using MudBlazor.Services;
-using P4PlanLib;
-using PlanIt.Components;
+using PlanIt.Authentication;
 using PlanIt.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.AddFilter("Microsoft", LogLevel.Warning)
+           .AddFilter("System", LogLevel.Warning)
+           .AddFilter("PlanIt.Program", LogLevel.Debug)
+           .AddDebug()
+           .AddConsole();
+});
+var logger = loggerFactory.CreateLogger("PlanItApp");
 
 DotNetEnv.Env.Load("DEV.env");
 
 string? p4PlanServerUrl = Environment.GetEnvironmentVariable("P4PLAN_SERVER") ?? string.Empty;
 string? p4PlanProjectWhitelist = Environment.GetEnvironmentVariable("P4PLAN_PROJECT_WHITELIST") ?? string.Empty;
+string? p4PlanNextMilestone = Environment.GetEnvironmentVariable("P4PLAN_NEXT_MILESTONE") ?? string.Empty;
 
-builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-builder.Services.AddHttpClient();
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddMudServices();
+builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
+builder.Services.AddSingleton(x => logger);
+builder.Services.AddSignalR();
+builder.Services.AddSession();
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
 
+builder.Services.AddMudServices();
 builder.Services.AddHttpClient();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
@@ -38,22 +58,33 @@ else
     builder.Services.AddSingleton<IP4PlanClientProvider>(serviceProvider => new P4PlanDummyClientProvider());
 }
 
-var app = builder.Build();
+builder.Services.AddSingleton<IProjectDetailsService>(serviceProvider =>
+{
+    var projectDetailsService = new ProjectDetailsService();
+    if (!string.IsNullOrEmpty(p4PlanNextMilestone))
+    {
+        projectDetailsService.NextMilestoneName = p4PlanNextMilestone;
+    }
+    return projectDetailsService;
+});
 
-// Configure the HTTP request pipeline.
+var app = builder.Build();
+app.UseSession();
+app.UseResponseCompression();
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseExceptionHandler("/Error", true);
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
 
 app.Run();
