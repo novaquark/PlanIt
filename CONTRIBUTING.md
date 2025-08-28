@@ -17,7 +17,9 @@ Each issue, once reviewed by the team, will have a time estimate. Unless there i
 You can assign to yourself 1 task at a time and once assigned, we expect the work to be done within an acceptable timeframe, being
 - 1 week for a task with 1 day or less time estimate
 - 2 weeks for a task with 2 to 4 days time estimate
-- up to 3 weeks/1 month for larger 1 week time estimate tasks. **Don't grab these big tasks before the team agrees on it and you have already worked on smaller tasks on this project** 
+- up to 3 weeks/1 month for larger 1 week time estimate tasks. **Don't grab these big tasks before the team agrees on it and you have already worked on smaller tasks on this project**
+
+Note : 1d is 8 working hours
 
 ## Contact
 
