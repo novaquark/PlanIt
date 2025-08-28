@@ -12,10 +12,11 @@
 
 <h1>Next milestone</h1>
 
-@if(!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+@if (!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
 {
     <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
-} else if(!loaded)
+}
+else if (!loaded)
 {
     <p>Loading...</p>
 }
@@ -53,7 +54,7 @@ else
         </ChildRowContent>
     </MudDataGrid>
 
-    <MudSpacer/>
+	<MudSpacer />
 }
 
 @code {
@@ -77,15 +78,24 @@ else
             var comparer = new P4PlanLib.ItemComparer();
 
             dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
+			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
-            foreach(var item in dashboardItems)
+			foreach (var item in dashboardItems)
             {
                 item.Type = "Bug";
                 rankedList.Add(item);
             }
 
-            for(var i = 0 ; i < rankedList.Count ; i++)
+			foreach (var item in backlogTasks)
+			{
+				item.Type = "Backlog";
+				dashboardItems.Add(item);
+				rankedList.Add(item);
+			}
+
+
+			for (var i = 0; i < rankedList.Count; i++)
             {
                 rankedList[i].Rank = i + 1;
             }
