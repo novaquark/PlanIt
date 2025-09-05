@@ -11,4 +11,9 @@ Main scheduled features are:
 - Custom todolist
 - Common sprint view (assembling team sprints into project sprint)
 - Dashboards with filtering and display
-- Connexion with Swarm 
+- Connexion with Swarm
+
+Sceenshots on a dummy database:
+![](references/Todolist.png)
+
+![](references/Milestone.png)
