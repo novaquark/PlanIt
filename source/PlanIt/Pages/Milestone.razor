@@ -1,11 +1,9 @@
 ﻿@page "/milestone"
-@using GraphQL
 @using System.Security.Claims
 @using System.Collections.ObjectModel
-@inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
-@inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Navigation
 @inject IProjectDetailsService ProjectDetailsService
 
 <PageTitle>Next milestone</PageTitle>
@@ -22,7 +20,7 @@ else if (!loaded)
 }
 else
 {
-    <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
+    <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive">
         <ColGroup>
             <col style="width: 50px;" />
             <col style="width: 50px;" />
@@ -54,7 +52,7 @@ else
         </ChildRowContent>
     </MudDataGrid>
 
-	<MudSpacer />
+    <MudSpacer />
 }
 
 @code {
@@ -78,24 +76,23 @@ else
             var comparer = new P4PlanLib.ItemComparer();
 
             dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
-			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
+            var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
-			foreach (var item in dashboardItems)
+            foreach (var item in dashboardItems)
             {
                 item.Type = "Bug";
                 rankedList.Add(item);
             }
 
-			foreach (var item in backlogTasks)
-			{
-				item.Type = "Backlog";
-				dashboardItems.Add(item);
-				rankedList.Add(item);
-			}
+            foreach (var item in backlogTasks)
+            {
+                item.Type = "Backlog";
+                dashboardItems.Add(item);
+                rankedList.Add(item);
+            }
 
-
-			for (var i = 0; i < rankedList.Count; i++)
+            for (var i = 0; i < rankedList.Count; i++)
             {
                 rankedList[i].Rank = i + 1;
             }
@@ -124,16 +121,6 @@ else
             "Backlog" => Lucide.Clipboard,
             "Bug" => Lucide.Bug,
             _ => Lucide.CircleQuestionMark
-        };
-    }
-
-    private string GetTypeBackgroundColor(string type)
-    {
-        return type switch
-        {
-            "Showstopper" => "background: #EE8888;",
-            "Bug" => "background: #EEEE88;",
-            _ => ""
         };
     }
 }

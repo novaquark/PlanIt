@@ -19,6 +19,10 @@ public class Comment
     [JsonProperty("postedAt")]
     public string PostedAt { get; set; } = string.Empty;
 
+    // Additional properties for development convenience
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
     [JsonProperty("mentionedUsers")]
     public User[]? MentionedUsers { get; set; }
 
