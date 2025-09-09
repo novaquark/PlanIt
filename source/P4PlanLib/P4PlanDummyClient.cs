@@ -634,114 +634,135 @@ namespace P4PlanLib
             throw new NotImplementedException("Dummy client does not support raw GraphQL. Use the specific methods instead.");
         }
 
-        // Enhanced Search method that handles the UI's complex queries
+        // Search method
         public Task<List<Item>> Search(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return Task.FromResult(_items.Values.ToList());
 
-            var results = new List<Item>();
+            // Start with all items
+            var results = _items.Values.ToList();
+            // Step 1: Filter by Item Type
+            results = FilterByItemType(results, query);
+            // Step 2: Filter by Status
+            results = FilterByStatus(results, query);
+            // Step 3: Filter by Severity (for bugs)
+            results = FilterBySeverity(results, query);
+            // Step 4: Filter by Sprint/Commitment
+            results = FilterBySprint(results, query);
+            // Step 5: Filter by Assigned User
+            results = FilterByAssignee(results, query);
+            // Step 6: Filter by Release Tag (milestone)
+            results = FilterByReleaseTag(results, query);
+            // Step 7: Text search (if no specific filters applied)
+            if (IsTextSearch(query))
+            {
+                results = FilterByText(results, query);
+            }
+            return Task.FromResult(results);
+        }
 
-            // Handle different search patterns used by the UI
+        private List<Item> FilterByItemType(List<Item> items, string query)
+        {
             if (query.Contains("Item type=bug") || query.Contains("Item type=\"bug\"") || query.Contains("\"Item type\"=bug"))
             {
-                if (query.Contains("Status!=Complete"))
-                {
-                    if (query.Contains("Severity >\"Severity B\""))
-                    {
-                        // Regular bugs (Medium, High, but not Critical which are showstoppers)
-                        results.AddRange(_items.Values.Where(i => 
-                            i.Type == "Bug" && 
-                            i.Status != "Done" && 
-                            (i.Severity == "Medium" || i.Severity == "High")));
-                    }
-                    else if (query.Contains("Severity <=\"Severity B\""))
-                    {
-                        // Showstoppers (Critical severity)
-                        results.AddRange(_items.Values.Where(i => 
-                            i.Type == "Bug" && 
-                            i.Status != "Done" && 
-                            i.Severity == "Critical"));
-                    }
-                    else
-                    {
-                        // All bugs
-                        results.AddRange(_items.Values.Where(i => i.Type == "Bug" && i.Status != "Done"));
-                    }
-                }
-                else
-                {
-                    // All bugs regardless of status
-                    results.AddRange(_items.Values.Where(i => i.Type == "Bug"));
-                }
+                return items.Where(i => i.Type == "Bug").ToList();
             }
             else if (query.Contains("Item type=\"backlog item\"") || query.Contains("Item type!=\"bug\"") || query.Contains("\"Item type\"=\"backlog item\""))
             {
-                if (query.Contains("Status!=Complete"))
-                {
-                    if (query.Contains("Committed to\":\"S30\"") || query.Contains("\"Committed to\":\"S30\""))
-                    {
-                        // Sprint items (not in backlog) - S30 refers to current sprint
-                        results.AddRange(_items.Values.Where(i => 
-                            (i.Type == "Task" || i.Type == "Story") && 
-                            i.Status != "Done" && 
-                            i.CommittedTo?.Name != "Backlog"));
-                    }
-                    else
-                    {
-                        // Backlog items (epics and stories)
-                        results.AddRange(_items.Values.Where(i => 
-                            (i.Type == "Epic" || i.Type == "Story") && 
-                            i.Status != "Done"));
-                    }
-                }
-                else
-                {
-                    // All backlog items regardless of status
-                    results.AddRange(_items.Values.Where(i => i.Type == "Epic" || i.Type == "Story"));
-                }
-            }
-            else if (query.Contains("Release tag"))
-            {
-                // Milestone items - return a mix of bugs and backlog items
-                results.AddRange(_items.Values.Where(i => 
-                    i.Status != "Done" && 
-                    (i.Type == "Bug" || i.Type == "Epic" || i.Type == "Story")));
-            }
-            else
-            {
-                // Simple text search
-                results.AddRange(_items.Values.Where(item => 
-                    item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    item.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    item.Id.Contains(query, StringComparison.OrdinalIgnoreCase)));
-            }
-
-            // Filter by assigned user if specified
-            if (query.Contains("Assigned to"))
-            {
-                var userMatch = System.Text.RegularExpressions.Regex.Match(query, @"""Assigned to"":""([^""]+)""|Assigned to"":""([^""]+)""");
-                if (userMatch.Success)
-                {
-                    var userName = userMatch.Groups[1].Value ?? userMatch.Groups[2].Value;
-                    results = results.Where(i => 
-                        i.AssignedTo?.Any(a => a.User?.Name == userName) == true).ToList();
-                }
+                return items.Where(i => i.Type == "Epic" || i.Type == "Story" || i.Type == "Task").ToList();
             }
             
-            // Filter by assign tag if specified (for backlog items)
-            if (query.Contains("Assign tag"))
+            return items; // No type filter applied
+        }
+
+        private List<Item> FilterByStatus(List<Item> items, string query)
+        {
+            if (query.Contains("Status!=Complete") || query.Contains("Status!=Done"))
             {
-                var userMatch = System.Text.RegularExpressions.Regex.Match(query, @"""Assign tag"":""([^""]+)""|Assign tag"":""([^""]+)""");
-                if (userMatch.Success)
-                {
-                    var userName = userMatch.Groups[1].Value ?? userMatch.Groups[2].Value;
-                    results = results.Where(i => 
-                        i.AssignedTo?.Any(a => a.User?.Name == userName) == true).ToList();
-                }
+                return items.Where(i => i.Status != "Done").ToList();
+            }
+            
+            return items; // No status filter applied
+        }
+
+        private List<Item> FilterBySeverity(List<Item> items, string query)
+        {
+            if (query.Contains("Severity >\"Severity B\""))
+            {
+                // High severity bugs (High, Critical)
+                return items.Where(i => i.Severity == "High" || i.Severity == "Critical").ToList();
+            }
+            else if (query.Contains("Severity <=\"Severity B\""))
+            {
+                // Low/Medium severity bugs
+                return items.Where(i => i.Severity == "Low" || i.Severity == "Medium").ToList();
+            }
+            
+            return items; // No severity filter applied
+        }
+
+        private List<Item> FilterBySprint(List<Item> items, string query)
+        {
+            if (query.Contains("Committed to\":\"S30\"") || query.Contains("\"Committed to\":\"S30\""))
+            {
+                // Sprint items (not in backlog)
+                return items.Where(i => i.CommittedTo?.Name != "Backlog").ToList();
+            }
+            
+            return items; // No sprint filter applied
+        }
+
+        private List<Item> FilterByAssignee(List<Item> items, string query)
+        {
+            var assignedToMatch = System.Text.RegularExpressions.Regex.Match(query, @"""Assigned to"":""([^""]+)""|Assigned to"":""([^""]+)""");
+            if (assignedToMatch.Success)
+            {
+                var userName = assignedToMatch.Groups[1].Value ?? assignedToMatch.Groups[2].Value;
+                return items.Where(i => i.AssignedTo?.Any(a => a.User?.Name == userName) == true).ToList();
             }
 
-            return Task.FromResult(results);
+            var assignTagMatch = System.Text.RegularExpressions.Regex.Match(query, @"""Assign tag"":""([^""]+)""|Assign tag"":""([^""]+)""");
+            if (assignTagMatch.Success)
+            {
+                var userName = assignTagMatch.Groups[1].Value ?? assignTagMatch.Groups[2].Value;
+                return items.Where(i => i.AssignedTo?.Any(a => a.User?.Name == userName) == true).ToList();
+            }
+            
+            return items; // No assignee filter applied
+        }
+
+        private List<Item> FilterByReleaseTag(List<Item> items, string query)
+        {
+            if (query.Contains("Release tag"))
+            {
+                // Milestone items - return items that are not done
+                return items.Where(i => i.Status != "Done").ToList();
+            }
+            
+            return items; // No release tag filter applied
+        }
+
+        private bool IsTextSearch(string query)
+        {
+            // Check if this is a simple text search (no specific filters)
+            var hasFilters = query.Contains("Item type") || 
+                           query.Contains("Status") || 
+                           query.Contains("Severity") || 
+                           query.Contains("Committed to") || 
+                           query.Contains("Assigned to") || 
+                           query.Contains("Assign tag") || 
+                           query.Contains("Release tag");
+            
+            return !hasFilters;
+        }
+
+        private List<Item> FilterByText(List<Item> items, string query)
+        {
+            return items.Where(item => 
+                item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                item.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                item.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
         }
     }
 }
