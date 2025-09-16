@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace PlanIt.Services.Interfaces
 {
     /// <summary>
     /// Handles authentication operations for PlanIt application
     /// </summary>
-    public interface IAppAuthenticationService
+    public interface IAuthenticationService
     {
         /// <summary>
         /// Prepares a sign-in session for the specified user
@@ -20,17 +21,6 @@ namespace PlanIt.Services.Interfaces
         /// <param name="sessionId">Session identifier</param>
         /// <returns>Username if found, null otherwise</returns>
         string? GetPreparedSignIn(string sessionId);
-
-        /// <summary>
-        /// Cleans up expired sign-in sessions
-        /// </summary>
-        void CleanupExpiredSessions();
-
-        /// <summary>
-        /// Automatically authenticates a user (for development mode)
-        /// </summary>
-        /// <param name="httpContext">HTTP context for authentication</param>
-        /// <returns>Username of the authenticated user</returns>
-        Task<string> AutoAuthenticateAsync(HttpContext httpContext);
+        
     }
 } 

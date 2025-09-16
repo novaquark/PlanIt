@@ -2,25 +2,19 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using PlanIt.Services.Interfaces;
+using IAuthenticationService = PlanIt.Services.Interfaces.IAuthenticationService;
 
 namespace PlanIt.Services.Authentication
 {
     /// <summary>
     /// Development authentication service that automatically authenticates users
     /// </summary>
-    public class DevelopmentAuthenticationService : IAppAuthenticationService
+    public class DevelopmentAuthenticationService : IAuthenticationService
     {
-        private readonly IDevelopmentModeService _developmentModeService;
-        private readonly IUserSessionService _userSessionService;
         private readonly ILogger<DevelopmentAuthenticationService> _logger;
 
-        public DevelopmentAuthenticationService(
-            IDevelopmentModeService developmentModeService,
-            IUserSessionService userSessionService,
-            ILogger<DevelopmentAuthenticationService> logger)
+        public DevelopmentAuthenticationService(ILogger<DevelopmentAuthenticationService> logger)
         {
-            _developmentModeService = developmentModeService ?? throw new ArgumentNullException(nameof(developmentModeService));
-            _userSessionService = userSessionService ?? throw new ArgumentNullException(nameof(userSessionService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -38,37 +32,47 @@ namespace PlanIt.Services.Authentication
             if (sessionId.StartsWith("dev-session-"))
             {
                 _logger.LogDebug("Development mode: Returning development user for session {SessionId}", sessionId);
-                return _developmentModeService.DevelopmentUserEmail;
+                return "dev@example.com";
             }
 
             return null;
         }
-
-        public void CleanupExpiredSessions()
-        {
-            // No cleanup needed in development mode
-            _logger.LogDebug("Development mode: No session cleanup required");
-        }
+        
 
         /// <summary>
-        /// Automatically authenticicates a user in development mode
+        /// Automatically authenticicate a user in development mode
         /// </summary>
         public async Task<string> AutoAuthenticateAsync(HttpContext httpContext)
         {
-            if (!_developmentModeService.BypassAuthentication)
-            {
-                throw new InvalidOperationException("Auto-authentication is only available when bypass authentication is enabled");
-            }
-
-            var username = _developmentModeService.DevelopmentUserEmail;
-            var displayName = _developmentModeService.DevelopmentUserName;
+            var username = "dev@example.com";
+            var displayName = "Development User";
 
             _logger.LogInformation("Development mode: Auto-authenticating user {Username}", username);
 
-            var claims = _userSessionService.CreateUserClaims(username, displayName);
-            await _userSessionService.SignInUserAsync(httpContext, claims);
+            var claims = CreateUserClaims(username, displayName);
+            await SignInUserAsync(httpContext, claims);
 
             return username;
         }
+
+        public ClaimsPrincipal CreateUserClaims(string username, string displayName)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, displayName),
+                new Claim(ClaimTypes.Email, username),
+                new Claim(ClaimTypes.NameIdentifier, username.Split('@')[0]),
+                new Claim(ClaimTypes.Role, "ConnectedUser")
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            return new ClaimsPrincipal(identity);
+        }
+
+        public async Task SignInUserAsync(HttpContext httpContext, ClaimsPrincipal claims)
+        {
+            await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims);
+        }
+        
     }
 } 

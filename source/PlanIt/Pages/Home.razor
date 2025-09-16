@@ -1,14 +1,11 @@
 ﻿@page "/"
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Authentication.Cookies
 @using System.Security.Claims
 @using PlanIt.Services.Interfaces
 @using PlanIt.Services.Authentication
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager NavigationManager
-@inject IAppAuthenticationService AuthService
+@inject IAuthenticationService AuthService
 
 <PageTitle>Home</PageTitle>
 
@@ -29,25 +26,22 @@ else
     {
         await base.OnInitializedAsync();
 
-        // If not authenticated and we're using dummy client, auto-authenticate
-        if (!IsUserAuthenticated())
+        // Auto-authenticate in development mode
+        if (!IsUserAuthenticated() && AuthService is DevelopmentAuthenticationService devAuthService)
         {
-            if (AuthService is DevelopmentAuthenticationService devAuthService)
+            var context = HttpContextAccessor.HttpContext;
+            if (context != null)
             {
-                var context = HttpContextAccessor.HttpContext;
-                if (context != null)
+                try
                 {
-                    try
-                    {
-                        await devAuthService.AutoAuthenticateAsync(context);
-                        // Force a refresh to update the UI with authentication state
-                        NavigationManager.NavigateTo("/", true);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log the error but don't crash the page
-                        Console.WriteLine($"Auto-authentication failed: {ex.Message}");
-                    }
+                    await devAuthService.AutoAuthenticateAsync(context);
+                    // Force a refresh to update the UI with authentication state
+                    NavigationManager.NavigateTo("/", true);
+                }
+                catch (Exception ex)
+                {
+                    // Log the error
+                    Console.WriteLine($"Auto-authentication failed: {ex.Message}");
                 }
             }
         }

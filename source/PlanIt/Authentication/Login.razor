@@ -6,12 +6,10 @@
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 @using System.ComponentModel.DataAnnotations
-@using PlanIt.Services.Interfaces
-@using PlanIt.Services.Authentication
+@using IAuthenticationService = PlanIt.Services.Interfaces.IAuthenticationService
 @inject NavigationManager NavigationManager
 @inject IHttpContextAccessor HttpContextAccessor
-@inject IAppAuthenticationService AuthService
-@inject IUserSessionService UserSessionService
+@inject IAuthenticationService AuthService
 @inject IP4PlanClientProvider P4PlanClientProvider
 
 <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">Connection to P4 Plan</MudText>
@@ -41,6 +39,7 @@
 }
 
 @code {
+
     [Parameter]
     public string AuthKey { get; set; } = string.Empty;
 
@@ -89,10 +88,19 @@
 
         var fullName = await p4PlanClient.ConnectedUserName();
 
-        var claims = UserSessionService.CreateUserClaims(userNameToLogIn, fullName);
-        await UserSessionService.SignInUserAsync(context, claims);
-        
-        NavigationManager.NavigateTo("/todolist", true);
+        var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, fullName),
+                new Claim(ClaimTypes.Email, userNameToLogIn),
+                new Claim(ClaimTypes.NameIdentifier, userNameToLogIn.Split('@')[0]),
+                new Claim(ClaimTypes.Role, "ConnectedUser")
+            };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await context.SignInAsync(principal);
+        NavigationManager.NavigateTo($"/todolist", true);
     }
 
     private async Task Connect()
@@ -111,7 +119,7 @@
             var fullName = await p4PlanClient.ConnectedUserName();
 
             var key = AuthService.PrepareSignIn(_loginModel.Email);
-            NavigationManager.NavigateTo("/login/" + key, true);
+            NavigationManager.NavigateTo($"/login/{key}", true);
         }
         catch (Exception)
         {
