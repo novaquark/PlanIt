@@ -16,58 +16,88 @@
 {
     <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
 }
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+}
 else if (!loaded)
 {
     <p>Loading...</p>
 }
 else
 {
-    <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
-        <ColGroup>
-            <col style="width: 50px;" />
-            <col style="width: 50px;" />
-            <col style="width: 50px;" />
-            <col />
-            <col style="width: 120px;" />
-            <col style="width: 120px;" />
-        </ColGroup>
-        <Columns>
+    ///Change Desc:-Show a ranked list of items in a custom data grid control, and define the structure and layout of the columns in the template. 
+    ///It is essential to bind the data at runtime to ensure that the displayed information is current and accurate. This custom control is designed 
+    ///for flexibility and can be reused effectively on other pages, making it a versatile solution for presenting data in different contexts.
+    ///Date:- 09/10/2025
+    ///Author:- Saket Khare
+    ///Reviewed By:-
+    <DatGridComponent TItem="P4PlanLib.Model.Item" Items="rankedList">
+        <ColumnTemplates>
             <HierarchyColumn T="P4PlanLib.Model.Item" InitiallyExpandedFunc="@(x => false)" EnableHeaderToggle="true" />
-            <PropertyColumn Property="x => x.Rank" Title="Rank" Sortable="true" />
-            <PropertyColumn Property="x => x.Type" />
-            <PropertyColumn Property="x => x.Name" SortBy="@_sortBy" Filterable="true" Sortable="true" />
-            <PropertyColumn Property="x => x.BeautifulPriority" Title="Priority" />
-            <PropertyColumn Property="x => x.EstimatedDays" Title="Hours remaining" />
-        </Columns>
-        <ChildRowContent>
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">@context.Item.Name</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>@context.Item.Name</MudText>
-                    <MudText>TODO details panel</MudText>
-                </MudCardContent>
-            </MudCard>
-        </ChildRowContent>
-    </MudDataGrid>
+            <PropertyColumn T="P4PlanLib.Model.Item" TProperty="object" Property="@(x => x.Rank)" Title="Rank" Sortable="true" />
+            <PropertyColumn T="P4PlanLib.Model.Item" TProperty="object" Property="@(x => x.Type)" Title="Type" />
+            <PropertyColumn T="P4PlanLib.Model.Item" TProperty="object" Property="@(x => x.Name)" Title="Name" Sortable="true" Filterable="true" />
+            <PropertyColumn T="P4PlanLib.Model.Item" TProperty="object" Property="@(x => x.Priority)" Title="Priority" />
+            <PropertyColumn T="P4PlanLib.Model.Item" TProperty="object" Property="@(x => x.EstimatedDays)" Title="Hours remaining" />
+        </ColumnTemplates>
 
-	<MudSpacer />
+        @*Change Desc:- The Details row information will be displayed when you click on the arrow icon for each row in the Datagrid component.
+        This Details row is optional when using the Datagrid components on other pages, and you can bind any number of rows with dynamic data at runtime.
+         /// Date:- 09/15/2025
+         /// Author:- Saket Khare
+        /// Reviewed By:-
+        *@
+             <detailsRowTemplate>
+            <MudPaper Class="mud-elevation-1 pa-4">
+                <!-- Row-level header -->
+                <div class="mud-typography mud-typography-h6 mb-2" style="border-bottom: 1px solid #ccc; padding-bottom: 4px;">
+                     Details for: @context.Name
+                </div>
+
+                <!-- Row content -->
+                <div>
+                    <strong>Priority:</strong> @context.Priority<br />
+                    <strong>Type:</strong> @context.Type<br />
+                    <strong>Estimated Hours:</strong> @context.EstimatedDays
+                </div>
+            </MudPaper>
+        </detailsRowTemplate>
+    </DatGridComponent>
+   
 }
 
 @code {
+    /// <summary>
+    /// Change Desc:- Replaced List with ObservableCollection to support dynamic updates in the UI. Apllied sorting and ranking logic to ensure items are displayed in the correct order.
+    /// Also added error  handling to manage potential issues during data retrieval.
+    /// Date:- 09/10/2025
+    /// Author:- Saket Khare
+    /// Reviewed By:-
+    /// </summary>
+   @code {
     private ObservableCollection<P4PlanLib.Model.Item>? dashboardItems { get; set; }
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
+        /// Change Desc:- Implemented error handling to manage potential issues during data retrieval & optimize the loading process. Applied code cleaning best practices.
+        /// Date:- 09/10/2025
+        /// Author:- Saket Khare
+        try
         {
-            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
-            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            if (!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? true || loaded)
+                return;
+
+            var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                errorMessage = "User email not found.";
+                return;
+            }
+
             var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
             if (p4PlanClient is null)
             {
@@ -75,65 +105,50 @@ else
                 return;
             }
 
-            var comparer = new P4PlanLib.ItemComparer();
+            var bugs = await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
+            var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
-            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
-			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
-
+            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(bugs.OrderBy(_sortBy).ThenBy(x => x.Priority));
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
-			foreach (var item in dashboardItems)
+
+            foreach (var item in dashboardItems.Concat(backlogTasks))
             {
-                item.Type = "Bug";
+                item.Type = dashboardItems.Contains(item) ? "Bug" : "Backlog";
+                if (!dashboardItems.Contains(item)) dashboardItems.Add(item);
                 rankedList.Add(item);
             }
 
-			foreach (var item in backlogTasks)
-			{
-				item.Type = "Backlog";
-				dashboardItems.Add(item);
-				rankedList.Add(item);
-			}
-
-
-			for (var i = 0; i < rankedList.Count; i++)
-            {
+            for (int i = 0; i < rankedList.Count; i++)
                 rankedList[i].Rank = i + 1;
-            }
 
             loaded = true;
-            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Something went wrong while loading milestone data. Please try again later.";
+            Console.Error.WriteLine($"[Milestone Error] {ex.Message}");
         }
     }
 
-    private Func<P4PlanLib.Model.Item, object> _sortBy => x =>
+    private Func<P4PlanLib.Model.Item, object> _sortBy => x => x.Name;
+
+    private void NavigateToDetails(string id) => Navigation.NavigateTo($"/details/{id}");
+
+    private SvgIcon TaskTypeToIcon(string type) => type switch
     {
-        return x.Name;
+        "Showstopper" => Lucide.OctagonMinus,
+        "Sprint" => Lucide.Rocket,
+        "Backlog" => Lucide.Clipboard,
+        "Bug" => Lucide.Bug,
+        _ => Lucide.CircleQuestionMark
     };
 
-    private void NavigateToDetails(string id)
+    private string GetTypeBackgroundColor(string type) => type switch
     {
-        Navigation.NavigateTo($"/details/{id}");
-    }
+        "Showstopper" => "background: #EE8888;",
+        "Bug" => "background: #EEEE88;",
+        _ => ""
+    };
 
-    private SvgIcon TaskTypeToIcon(string type)
-    {
-        return type switch
-        {
-            "Showstopper" => Lucide.OctagonMinus,
-            "Sprint" => Lucide.Rocket,
-            "Backlog" => Lucide.Clipboard,
-            "Bug" => Lucide.Bug,
-            _ => Lucide.CircleQuestionMark
-        };
-    }
-
-    private string GetTypeBackgroundColor(string type)
-    {
-        return type switch
-        {
-            "Showstopper" => "background: #EE8888;",
-            "Bug" => "background: #EEEE88;",
-            _ => ""
-        };
-    }
+}
 }

@@ -1,0 +1,44 @@
+@using System.Linq.Expressions
+@typeparam TItem
+
+@*
+  Change Desc:- A reusable data grid component that supports dynamic columns, sorting, filtering, and expandable child rows.
+    Utilizes MudDataGrid from MudBlazor for rich functionality.
+    Date:- 09/10/2025
+    Author:- Saket Khare
+    Reviewed By:-
+*@
+<MudDataGrid T="TItem"
+             Items="Items"
+             Hover="true"
+             Striped="true"
+             Dense="true"
+             Bordered="true"
+             FilterMode="DataGridFilterMode.Simple"
+             FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive"
+             SortLabel="Sort by">
+
+    <Columns>
+        @if (ColumnTemplates != null)
+        {
+            @ColumnTemplates
+        }
+    </Columns>
+
+    <ChildRowContent>
+        @if (detailsRowTemplate != null)
+        {
+            @detailsRowTemplate(context.Item)
+        }
+    </ChildRowContent>
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = new List<TItem>();
+
+    // Dynamic column templates
+    [Parameter] public RenderFragment? ColumnTemplates { get; set; }
+
+    // Optional child row template
+    [Parameter] public RenderFragment<TItem>? detailsRowTemplate { get; set; }
+}
