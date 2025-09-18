@@ -21,6 +21,10 @@ You can assign to yourself 1 task at a time and once assigned, we expect the wor
 
 Note : 1d is 8 working hours
 
+## How to work
+
+For the project locally, and work on a task. Once you are satisfied with your code and the code quality has reached sufficient level, publish your branch to your repo, then start a Pull Request from your repo to the origin (this repo). Github UI on your front page should have the "Do you want to create a pull request?" button.
+
 ## Contact
 
 You can contact the team in the issues section, or on LinkedIn
