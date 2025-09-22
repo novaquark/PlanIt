@@ -1,28 +1,22 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
-using PlanIt.Services.Interfaces;
-using IAuthenticationService = PlanIt.Services.Interfaces.IAuthenticationService;
+using PlanIt.Authentication;
+using IAuthenticationService = PlanIt.Authentication.IAuthenticationService;
 
 namespace PlanIt.Services.Authentication
 {
     /// <summary>
     /// Development authentication service that automatically authenticates users
     /// </summary>
-    public class DevelopmentAuthenticationService : IAuthenticationService
+    public class DevelopmentAuthenticationService(ILogger<DevelopmentAuthenticationService> logger)
+        : IAuthenticationService
     {
-        private readonly ILogger<DevelopmentAuthenticationService> _logger;
-
-        public DevelopmentAuthenticationService(ILogger<DevelopmentAuthenticationService> logger)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
-
         public string PrepareSignIn(string username)
         {
             // In development mode, we don't need to prepare sign-in
             // Just return a dummy session ID
-            _logger.LogDebug("Development mode: Skipping sign-in preparation for {Username}", username);
+            logger.LogDebug("Development mode: Skipping sign-in preparation for {Username}", username);
             return "dev-session-" + Guid.NewGuid().ToString("N");
         }
 
@@ -31,7 +25,7 @@ namespace PlanIt.Services.Authentication
             // In development mode, always return the development user
             if (sessionId.StartsWith("dev-session-"))
             {
-                _logger.LogDebug("Development mode: Returning development user for session {SessionId}", sessionId);
+                logger.LogDebug("Development mode: Returning development user for session {SessionId}", sessionId);
                 return "dev@example.com";
             }
 
@@ -47,7 +41,7 @@ namespace PlanIt.Services.Authentication
             var username = "dev@example.com";
             var displayName = "Development User";
 
-            _logger.LogInformation("Development mode: Auto-authenticating user {Username}", username);
+            logger.LogInformation("Development mode: Auto-authenticating user {Username}", username);
 
             var claims = CreateUserClaims(username, displayName);
             await SignInUserAsync(httpContext, claims);

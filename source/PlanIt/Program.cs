@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.ResponseCompression;
 using MudBlazor.Services;
 using PlanIt.Authentication;
 using PlanIt.Services;
-using PlanIt.Services.Interfaces;
 using PlanIt.Services.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,8 +27,12 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
 
-// Simple development mode detection - use DevelopmentAuthenticationService in development, AuthenticationService in production
-if (builder.Environment.IsDevelopment())
+// Authentication service selection logic:
+// - Use DevelopmentAuthenticationService only if in development environment AND no production env vars are configured
+// - Use AuthenticationService if in production environment OR if production env vars are configured (even on dev PC)
+var hasProductionConfig = !string.IsNullOrEmpty(p4PlanServerUrl) && !string.IsNullOrEmpty(p4PlanProjectWhitelist);
+
+if (builder.Environment.IsDevelopment() && !hasProductionConfig)
 {
     builder.Services.AddSingleton<IAuthenticationService, DevelopmentAuthenticationService>();
 }
