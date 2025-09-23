@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using MudBlazor.Services;
 using PlanIt.Authentication;
 using PlanIt.Services;
+using PlanIt.Services.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,21 @@ string? p4PlanNextMilestone = Environment.GetEnvironmentVariable("P4PLAN_NEXT_MI
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
+
+// Authentication service selection logic:
+// - Use DevelopmentAuthenticationService only if in development environment AND no production env vars are configured
+// - Use AuthenticationService if in production environment OR if production env vars are configured (even on dev PC)
+var hasProductionConfig = !string.IsNullOrEmpty(p4PlanServerUrl) && !string.IsNullOrEmpty(p4PlanProjectWhitelist);
+
+if (builder.Environment.IsDevelopment() && !hasProductionConfig)
+{
+    builder.Services.AddSingleton<IAuthenticationService, DevelopmentAuthenticationService>();
+}
+else
+{
+    builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
+}
+
 builder.Services.AddSingleton(x => logger);
 builder.Services.AddSignalR();
 builder.Services.AddSession();

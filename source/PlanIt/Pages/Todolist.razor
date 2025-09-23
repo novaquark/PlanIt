@@ -50,7 +50,7 @@ else
                 }
             </MudTd>
             <MudTd DataLabel="Priority">@context.BeautifulPriority</MudTd>
-            <MudTd DataLabel="Work remaining">@context.WorkRemaining</MudTd>
+            <MudTd DataLabel="Work remaining">@(context.WorkRemaining?.ToString("F1") ?? "0")</MudTd>
         </RowTemplate>
     </MudTable>
 
