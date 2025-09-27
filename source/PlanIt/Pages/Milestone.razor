@@ -2,6 +2,7 @@
 @using GraphQL
 @using System.Security.Claims
 @using System.Collections.ObjectModel
+@using P4PlanLib.Model
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -41,15 +42,15 @@ else
         </Columns>
         <ChildRowContent>
             <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">@context.Item.Name</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>@context.Item.Name</MudText>
-                    <MudText>TODO details panel</MudText>
-                </MudCardContent>
+                <DetailsView Item="@context.Item"
+                            Comments="@GetCommentsForItem(context.Item.Id)"
+                            NewCommentText="@GetNewCommentText(context.Item.Id)"
+                            OnNewCommentTextChanged="@(value => OnNewCommentTextChanged(context.Item.Id, value))"
+                            PostingComment="@GetPostingComment(context.Item.Id)"
+                            PostCommentError="@GetPostCommentError(context.Item.Id)"
+                            OnPostComment="@(commentText => PostCommentAsync(context.Item.Id, commentText))"
+                            ChildItems="@GetChildItemsForItem(context.Item.Id)"
+                            OnNavigateToChild="@NavigateToChild" />
             </MudCard>
         </ChildRowContent>
     </MudDataGrid>
@@ -62,13 +63,24 @@ else
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
 
+    // Comment management
+    private Dictionary<string, List<Comment>> itemComments = new();
+    private Dictionary<string, string> newCommentTexts = new();
+    private Dictionary<string, bool> postingComments = new();
+    private Dictionary<string, string> postCommentErrors = new();
+
+    // Child items management
+    private Dictionary<string, List<Item>> itemChildItems = new();
+
+    private P4PlanLib.IP4PlanClient? p4PlanClient;
+
     protected override async Task OnInitializedAsync()
     {
         if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
         {
             var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
             var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
-            var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
             if (p4PlanClient is null)
             {
                 Navigation.NavigateTo("/");
@@ -135,5 +147,119 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
+    }
+
+    private List<Comment> GetCommentsForItem(string itemId)
+    {
+        if (!itemComments.ContainsKey(itemId))
+        {
+            // Load comments asynchronously when first accessed
+            _ = LoadCommentsForItem(itemId);
+            return new List<Comment>();
+        }
+        return itemComments[itemId];
+    }
+
+    private async Task LoadCommentsForItem(string itemId)
+    {
+        if (p4PlanClient != null)
+        {
+            try
+            {
+                var comments = await p4PlanClient.GetComments(itemId);
+                itemComments[itemId] = comments;
+                StateHasChanged();
+            }
+            catch
+            {
+                itemComments[itemId] = new List<Comment>();
+            }
+        }
+    }
+
+    private string GetNewCommentText(string itemId)
+    {
+        return newCommentTexts.GetValueOrDefault(itemId, string.Empty);
+    }
+
+    private bool GetPostingComment(string itemId)
+    {
+        return postingComments.GetValueOrDefault(itemId, false);
+    }
+
+    private string GetPostCommentError(string itemId)
+    {
+        return postCommentErrors.GetValueOrDefault(itemId, string.Empty);
+    }
+
+    private async Task OnNewCommentTextChanged(string itemId, string value)
+    {
+        newCommentTexts[itemId] = value;
+        StateHasChanged();
+    }
+
+    private async Task PostCommentAsync(string itemId, string commentText)
+    {
+        if (p4PlanClient is null)
+            return;
+
+        postCommentErrors[itemId] = string.Empty;
+        postingComments[itemId] = true;
+        StateHasChanged();
+
+        try
+        {
+            var success = await p4PlanClient.PostComment(itemId, commentText);
+            if (success)
+            {
+                newCommentTexts[itemId] = string.Empty;
+                await LoadCommentsForItem(itemId);
+            }
+            else
+            {
+                postCommentErrors[itemId] = "Failed to post comment.";
+            }
+        }
+        catch (Exception ex)
+        {
+            postCommentErrors[itemId] = ex.Message;
+        }
+
+        postingComments[itemId] = false;
+        StateHasChanged();
+    }
+
+    private List<Item>? GetChildItemsForItem(string itemId)
+    {
+        if (!itemChildItems.ContainsKey(itemId))
+        {
+            // Load child items asynchronously when first accessed
+            _ = LoadChildItemsForItem(itemId);
+            return null; // Return null to show loading state
+        }
+        return itemChildItems[itemId];
+    }
+
+    private async Task LoadChildItemsForItem(string itemId)
+    {
+        if (p4PlanClient != null)
+        {
+            try
+            {
+                var childItems = await p4PlanClient.GetItemChildrenAsync(itemId, false);
+                itemChildItems[itemId] = childItems;
+                StateHasChanged();
+            }
+            catch
+            {
+                itemChildItems[itemId] = new List<Item>();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task NavigateToChild(string childId)
+    {
+        Navigation.NavigateTo($"/details/{childId}");
     }
 }

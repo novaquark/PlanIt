@@ -1,0 +1,298 @@
+@using P4PlanLib.Model
+@using MudBlazor
+
+<div class="d-flex flex-grow-1 gap-1" style="height:30vh;">
+    <MudPaper Class="flex-auto d-flex flex-column gap-1" Width="70%" Elevation="0">
+    <MudPaper Class="flex-auto paper-bg d-flex justify-space-between align-center" Style="height:10%;" Elevation="0">
+            <MudText Typo="Typo.h6" Color="Color.Primary">@Item?.Id</MudText>
+            <a href="@Item?.GetItemLink()"
+                   target="_blank"
+                   style="color: #007acc;
+                          text-decoration: none;
+                          font-weight: 500;
+                          transition: color 0.2s ease;
+                          margin-right:15px;"
+                   onmouseover="this.style.color='#005a99'"
+                   onmouseout="this.style.color='#007acc'">
+                   Parent Task →
+                </a>
+    </MudPaper>
+        <div class="d-flex flex-grow-1 gap-1" style="height:90%;">
+            <MudPaper Class="flex-auto d-flex flex-column gap-1" Width="70%" Elevation="0">
+                <div class="d-flex flex-grow-1 gap-1" style="height:20%;">
+                    <MudPaper Width="10%" Elevation="0" Class="d-flex align-center justify-center" Style="@GetPriorityStyle(Item?.Priority)">
+                        <MudText Style="color: white; font-weight: bold;">@GetPriorityText(Item?.Priority)</MudText>
+                    </MudPaper>
+                    <MudPaper Width="10%" Elevation="0" Class="d-flex align-center justify-center" Style="@GetSeverityStyle(Item?.Severity)">
+                        <MudText Style="color: white; font-weight: bold;">@GetSeverityText(Item?.Severity)</MudText>
+                    </MudPaper>
+                    <MudPaper Width="50%" Elevation="0" Class="paper-bg">
+                        <MudText>
+                            @if (Item?.AssignedTo != null && Item.AssignedTo.Length > 0)
+                            {
+                                var firstUser = Item.AssignedTo.FirstOrDefault(a => a.User != null)?.User?.Name;
+                                var count = Item.AssignedTo.Count(a => a.User != null);
+                                if (!string.IsNullOrEmpty(firstUser))
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.AssignmentInd">@firstUser</MudButton>
+                                    <MudFab Color="Color.Secondary" Label="@count.ToString()" />
+                                }
+                                else
+                                {
+                                    <MudFab Color="Color.Warning" StartIcon="@Icons.Material.Filled.Bookmark" Label="unassigned" />
+                                }
+                            }
+                            else
+                            {
+                                <MudFab Color="Color.Warning" StartIcon="@Icons.Material.Filled.Bookmark" Label="unassigned" />
+                            }
+                        </MudText>
+                    </MudPaper>
+                    <MudPaper Width="30%" Elevation="0" Class="paper-bg">
+                        @if (Item?.CommittedTo != null)
+                        {
+                            <div style="margin-left: 10px;
+                                        color: #1f2937;
+                                        font-weight: 500;">
+                                <a href="@Item.CommittedTo.ItemLink"
+                                   target="_blank"
+                                   style="color: #007acc;
+                                          text-decoration: none;
+                                          font-weight: 500;
+                                          transition: color 0.2s ease;"
+                                   onmouseover="this.style.color='#005a99'"
+                                   onmouseout="this.style.color='#007acc'">
+                                    @Item.CommittedTo.Name →
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="padding: 1rem;
+                                        color: #9ca3af;
+                                        font-weight: 500;">
+                                No Sprint
+                            </div>
+                        }
+                    </MudPaper>
+                </div>
+                <MudPaper Class="flex-auto paper-bg" Style="height:80%;" Elevation="0">
+                    <MudText Typo="Typo.body1">@Item?.Description </MudText>
+                </MudPaper>
+            </MudPaper>
+            <MudPaper Class="flex-auto" Width="30%" Elevation="0" Style="background: #fff; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="padding: 0.75rem;
+                            border-bottom: 1px solid #e5e7eb;
+                            background: #f8fafc;">
+                    <MudText Typo="Typo.subtitle2" Style="color: #1f2937; font-weight: 600; margin: 0;">
+                        Child Items (@(childItems?.Count ?? 0))
+                    </MudText>
+                </div>
+
+                <div style="flex: 1;
+                            overflow-y: auto;
+                            padding: 0.5rem;">
+                    @if (childItems == null)
+                    {
+                        <div style="display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    height: 100%;
+                                    color: #9ca3af;">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            <MudText Style="margin-left: 0.5rem; font-size: 0.75rem;">Loading...</MudText>
+                        </div>
+                    }
+                    else if (childItems.Count == 0)
+                    {
+                        <div style="display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                    justify-content: center;
+                                    height: 100%;
+                                    color: #9ca3af;
+                                    text-align: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Large" Style="margin-bottom: 0.5rem;" />
+                            <MudText Style="font-size: 0.75rem;">No child items</MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var child in childItems)
+                        {
+                            <div style="display: flex;
+                                        align-items: center;
+                                        gap: 0.5rem;
+                                        padding: 0.5rem;
+                                        margin-bottom: 0.25rem;
+                                        border-radius: 6px;
+                                        border: 1px solid #e5e7eb;
+                                        background: #fff;
+                                        cursor: pointer;
+                                        transition: all 0.2s ease;"
+                                 onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#007acc'"
+                                 onmouseout="this.style.background='#fff'; this.style.borderColor='#e5e7eb'"
+                                 @onclick="() => NavigateToChild(child.Id)">
+
+                                <!-- Priority Icon -->
+                                <div style="@GetPriorityStyle(child.Priority);
+                                            width: 20px;
+                                            height: 20px;
+                                            border-radius: 4px;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            flex-shrink: 0;">
+                                    <MudIcon Icon="@GetPriorityIcon(child.Priority)"
+                                             Size="Size.Small"
+                                             Style="color: white; font-size: 0.75rem;" />
+                                </div>
+
+                                <!-- Item Info -->
+                                <div style="flex: 1;
+                                            min-width: 0;
+                                            display: flex;
+                                            flex-direction: column;
+                                            gap: 0.125rem;">
+                                    <MudText Style="font-size: 0.75rem;
+                                                    font-weight: 600;
+                                                    color: #1f2937;
+                                                    line-height: 1.2;
+                                                    overflow: hidden;
+                                                    text-overflow: ellipsis;
+                                                    white-space: nowrap;">
+                                        @child.Name
+                                    </MudText>
+                                    <MudText Style="font-size: 0.625rem;
+                                                    color: #6b7280;
+                                                    line-height: 1.2;">
+                                        @child.Type • @child.Status
+                                    </MudText>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </MudPaper>
+        </div>
+    </MudPaper>
+    <MudPaper Class="flex-auto" Width="30%" Elevation="0" Style="background: #f8fafc; overflow: hidden;">
+        <LastCommentsSection Comments="@comments"
+                            NewCommentText="@newCommentText"
+                            OnNewCommentTextChanged="@HandleNewCommentTextChanged"
+                            PostingComment="@postingComment"
+                            PostCommentError="@postCommentError"
+                            OnPostComment="@PostCommentAsync" />
+    </MudPaper>
+</div>
+
+
+@code {
+    [Parameter]
+    public Item? Item { get; set; }
+
+    [Parameter]
+    public List<Comment> Comments { get; set; } = new();
+
+    [Parameter]
+    public string NewCommentText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnNewCommentTextChanged { get; set; }
+
+    [Parameter]
+    public bool PostingComment { get; set; }
+
+    [Parameter]
+    public string PostCommentError { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnPostComment { get; set; }
+
+    [Parameter]
+    public List<Item>? ChildItems { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnNavigateToChild { get; set; }
+
+    // Local properties for the component
+    private List<Comment> comments => Comments;
+    private string newCommentText => NewCommentText;
+    private bool postingComment => PostingComment;
+    private string postCommentError => PostCommentError;
+    private List<Item>? childItems => ChildItems;
+
+    private async Task HandleNewCommentTextChanged(string value)
+    {
+        await OnNewCommentTextChanged.InvokeAsync(value);
+    }
+
+    private async Task PostCommentAsync(string commentText)
+    {
+        await OnPostComment.InvokeAsync(commentText);
+    }
+
+    private string GetPriorityText(string? priority)
+    {
+        return priority switch
+        {
+            "veryHigh" => "1 - VH",
+            "high" => "2 - H",
+            "medium" => "3 - M",
+            "low" => "5 - L",
+            "veryLow" => "6 - VL",
+            _ => "4 - NA"
+        };
+    }
+
+    private string GetPriorityStyle(string? priority)
+    {
+        var backgroundColor = priority switch
+        {
+            "veryHigh" => "#dc3545", // Red - Very High
+            "high" => "#fd7e14",     // Orange - High
+            "medium" => "#ffc107",   // Yellow - Medium
+            "low" => "#6f42c1",      // Purple - Low
+            "veryLow" => "#6c757d",  // Gray - Very Low
+            _ => "#20c997"           // Teal - No Priority
+        };
+
+        return $"background: {backgroundColor}; border-radius: 4px;";
+    }
+
+    private string GetSeverityText(string? severity)
+    {
+        return severity switch
+        {
+            "Critical" => "CRIT",
+            "High" => "HIGH",
+            "Medium" => "MED",
+            "Low" => "LOW",
+            _ => "N/A"
+        };
+    }
+
+    private string GetSeverityStyle(string? severity)
+    {
+        var backgroundColor = severity switch
+        {
+            "Critical" => "#dc2626", // Dark Red - Critical
+            "High" => "#ea580c",     // Dark Orange - High
+            "Medium" => "#d97706",   // Amber - Medium
+            "Low" => "#059669",      // Green - Low
+            _ => "#6b7280"           // Gray - No Severity
+        };
+
+        return $"background: {backgroundColor}; border-radius: 4px;";
+    }
+
+    private string GetPriorityIcon(string? priority)
+    {
+        return Icons.Material.Filled.PriorityHigh;
+    }
+
+    private async Task NavigateToChild(string childId)
+    {
+        await OnNavigateToChild.InvokeAsync(childId);
+    }
+}
