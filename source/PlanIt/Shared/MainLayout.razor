@@ -1,5 +1,8 @@
-﻿@inherits LayoutComponentBase
-
+﻿@using System.Security.Claims
+@inherits LayoutComponentBase
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+@inject ITodoListSummaryService TodoListSummaryService
 @* Required *@
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -11,9 +14,39 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <!--<TopBarComponent />-->
+    <MudAppBar Elevation="1">
+        <div class="appbar-left d-flex align-center">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="@((e) => DrawerToggle())" />
+
+            <MudText Typo="Typo.body2" Class="ml-2">
+                @if (HttpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false)
+                {
+                    <p>Connected as @HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value</p>
+                }
+            </MudText>
+        </div>
+        @if (IsTodoListPage)
+        {
+            <div class="appbar-center">
+                <MudText Typo="Typo.body2" Class="d-flex align-center flex-wrap gap-1">
+                    I have
+                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"> <MudText Typo="Typo.caption">@TodoListSummaryService.MajorBugs major bugs</MudText></MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"><MudText Typo="Typo.caption">@TodoListSummaryService.MinorBugs bugs</MudText></MudChip>
+                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"><MudText Typo="Typo.caption">@TodoListSummaryService.Tasks tasks</MudText></MudChip>
+                    assigned to me
+                </MudText>
+            </div>
+            <div class="appbar-right d-flex align-center">
+                <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip">
+                    @TodoListSummaryService.DaysLeft days left in sprint <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="GoToSprint">
+                        (go to)
+                    </MudButton>
+                </MudChip>
+            </div>
+        }
     </MudAppBar>
     <MudDrawer @bind-Open="@_drawerOpen">
         <NavMenu />
@@ -28,9 +61,17 @@
 
 @code {
     bool _drawerOpen = true;
-
+    bool IsTodoListPage => NavigationManager.Uri.Contains("/todolist", StringComparison.OrdinalIgnoreCase);
+    protected override void OnInitialized()
+    {
+        TodoListSummaryService.OnChange += StateHasChanged;
+    }
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+    void GoToSprint()
+    {
+        // navigate to sprint page
     }
 }
