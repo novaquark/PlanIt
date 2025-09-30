@@ -2,6 +2,7 @@
 @using GraphQL
 @using System.Security.Claims
 @using System.Collections.ObjectModel
+@using P4PlanLib.Model
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -40,17 +41,7 @@ else
             <PropertyColumn Property="x => x.EstimatedDays" Title="Hours remaining" />
         </Columns>
         <ChildRowContent>
-            <MudCard>
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">@context.Item.Name</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudText>@context.Item.Name</MudText>
-                    <MudText>TODO details panel</MudText>
-                </MudCardContent>
-            </MudCard>
+                <DetailsView ItemId="@context.Item.Id" />
         </ChildRowContent>
     </MudDataGrid>
 
@@ -62,13 +53,16 @@ else
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
 
+
+    private P4PlanLib.IP4PlanClient? p4PlanClient;
+
     protected override async Task OnInitializedAsync()
     {
         if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
         {
             var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
             var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
-            var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
             if (p4PlanClient is null)
             {
                 Navigation.NavigateTo("/");
