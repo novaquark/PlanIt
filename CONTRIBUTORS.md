@@ -4,6 +4,7 @@
 
 ### Developers
 * [Bhushan Ramteke](https://github.com/bhooshan0x01)
+* [Pabitro Singh](https://github.com/pabitrosingh)
 
 ### Project owner
 * [Alexandre Trachez](https://www.linkedin.com/in/alexandre-trachez-8a647459/)

@@ -1,48 +1,30 @@
 @using P4PlanLib.Model
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IHttpContextAccessor HttpContextAccessor
 
-<div style="display: flex; 
-            flex-direction: column; 
-            height: 100%;
-            padding: 0.75rem;
-            gap: 0.75rem;">
+<MudStack Direction="Column" Spacing="1" Class="pa-3" Style="height:100%;">
     
-    <h4 style="margin: 0; 
-               color: #1a1a1a; 
-               font-weight: 600; 
-               font-size: 0.875rem;">
-        Comments (@Comments.Count)
-    </h4>
 
-    @if (Comments.Count == 0)
+    @if (loading)
     {
-        <div style="text-align: center; 
-                    padding: 1rem; 
-                    color: #9ca3af;
-                    display: flex; 
-                    flex-direction: column; 
-                    align-items: center; 
-                    gap: 0.5rem;
-                    flex: 1;
-                    justify-content: center;
-                    border-radius: 8px; 
-                    border: 1px solid #e5e7eb; 
-                    background: #fff;">
-            <div style="font-size: 1.5rem;">💬</div>
-            <p style="margin: 0; font-size: 0.75rem;">No comments yet</p>
+        <div class="d-flex align-center justify-center">
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Loading comments...</MudText>
+        </div>
+    }
+    else if (comments.Count == 0)
+    {
+        <div class="d-flex flex-column align-center justify-center" style="flex:1;">
+            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Large" Class="mud-text-secondary" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">No comments yet</MudText>
         </div>
     }
     else
     {
-        var lastComment = Comments.LastOrDefault();
+        var lastComment = comments.OrderBy(c => GetCommentDate(c)).LastOrDefault();
         if (lastComment != null)
         {
-            <div style="border-radius: 8px; 
-                        border: 1px solid #e5e7eb; 
-                        background: #fff; 
-                        padding: 0.75rem;
-                        flex: 1;
-                        overflow-y: auto;
-                        min-height: 0;">
+            <div class="mb-2" style="flex:1; overflow-y:auto; min-height:0;">
 
                 <div style="display: flex; 
                             align-items: center; 
@@ -62,152 +44,115 @@
                             @GetFormattedDate(lastComment)
                         </div>
                     </div>
-                    @if (Comments.Count > 1)
+                    @if (comments.Count > 1)
                     {
-                        <div style="color: #6b7280; 
-                                    font-size: 0.625rem; 
-                                    background: #f3f4f6; 
-                                    padding: 0.25rem 0.5rem; 
-                                    border-radius: 4px;">
-                            +@(Comments.Count - 1) more
-                        </div>
+                        <MudLink Href="@($"/details/{ItemId}")" Class="mud-typography-caption">
+                            +@(comments.Count - 1) more
+                        </MudLink>
                     }
                 </div>
                 
-                <div style="white-space: pre-wrap; 
-                            color: #374151; 
-                            line-height: 1.4; 
-                            margin-left: 2rem; 
-                            font-size: 0.75rem;
-                            max-height: 80px;
-                            overflow-y: auto;
-                            word-break: break-word;">
+                <MudText Typo="Typo.body2" Style="white-space: pre-wrap; margin-left: 2rem;">
                     @lastComment.Text
-                </div>
+                </MudText>
                 
                 @if (lastComment.Attachments != null && lastComment.Attachments.Length > 0)
                 {
-                    <div style="margin-top: 0.5rem; 
-                                margin-left: 2rem;">
-                        <div style="color: #6b7280; 
-                                    font-size: 0.625rem; 
-                                    font-weight: 600;">
-                            📎 @lastComment.Attachments.Length attachment(s)
-                        </div>
-                    </div>
+                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1" Class="ml-4 mt-1">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">@lastComment.Attachments.Length attachment(s)</MudText>
+                    </MudStack>
                 }
             </div>
         }
     }
 
-    <div style="border-radius: 8px; 
-                border: 1px solid #e5e7eb; 
-                background: #fff; 
-                padding: 0.75rem;
-                flex-shrink: 0;">
-        
-        <h5 style="margin: 0 0 0.5rem 0; 
-                   color: #1f2937; 
-                   font-weight: 600; 
-                   font-size: 0.75rem;">
-            Quick Reply
-        </h5>
-        
-        <div style="display: flex; 
-                    gap: 0.5rem; 
-                    align-items: flex-start;">
-            <textarea value="@NewCommentText" 
-                      @onchange="OnTextChanged" 
-                      style="flex: 1;
-                             min-height: 40px; 
-                             max-height: 60px; 
-                             resize: vertical; 
-                             border-radius: 6px; 
-                             border: 1px solid #e5e7eb; 
-                             padding: 0.5rem; 
-                             background: #fff; 
-                             font-family: inherit; 
-                             font-size: 0.75rem; 
-                             line-height: 1.4; 
-                             transition: border-color 0.2s ease;
-                             box-sizing: border-box;"
-                      placeholder="Quick reply..."
-                      onfocus="this.style.borderColor='#007acc'"
-                      onblur="this.style.borderColor='#e5e7eb'"></textarea>
-            
-            <button @onclick="PostComment" 
-                    disabled="@(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment)" 
-                    style="padding: 0.5rem 0.75rem; 
-                           border-radius: 6px; 
-                           border: none; 
-                           background: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "#e5e7eb" : "linear-gradient(135deg, #007acc, #005a99)"); 
-                           color: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "#9ca3af" : "white"); 
-                           cursor: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "not-allowed" : "pointer"); 
-                           font-size: 0.75rem; 
-                           font-weight: 600; 
-                           transition: all 0.2s ease;
-                           white-space: nowrap;
-                           min-width: 50px;
-                           flex-shrink: 0;">
-                @if (PostingComment)
-                {
-                    <span>⏳</span>
-                }
-                else
-                {
-                    <span>Reply</span>
-                }
-            </button>
-        </div>
-        
-        @if (!string.IsNullOrEmpty(PostCommentError))
+    <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Start">
+    <MudTextField T="string" Lines="2" FullWidth="true" Placeholder="Quick reply..." Immediate="true" @bind-Value="newCommentText" />
+    <MudButton OnClick="PostComment" Disabled="@(string.IsNullOrWhiteSpace(newCommentText) || postingComment)">
+        @if (postingComment)
         {
-            <div style="color: #dc2626; 
-                        font-size: 0.625rem; 
-                        margin-top: 0.5rem;
-                        display: flex; 
-                        align-items: center; 
-                        gap: 0.25rem;
-                        background: #fef2f2; 
-                        padding: 0.25rem 0.5rem; 
-                        border-radius: 4px; 
-                        border: 1px solid #fecaca;">
-                <span>⚠️</span>
-                <span>@PostCommentError</span>
-            </div>
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
         }
-    </div>
-</div>
+        else
+        {
+            <span>Reply</span>
+        }
+    </MudButton>
+</MudStack>
+@if (!string.IsNullOrEmpty(postCommentError))
+{
+    <MudAlert Severity="Severity.Error" Dense="true">@postCommentError</MudAlert>
+}
+</MudStack>
 
 @code {
     [Parameter]
-    public List<Comment> Comments { get; set; } = new();
+    public string ItemId { get; set; } = string.Empty;
 
-    [Parameter]
-    public string NewCommentText { get; set; } = string.Empty;
+    private List<Comment> comments = new();
+    private string newCommentText = string.Empty;
+    private bool postingComment = false;
+    private string postCommentError = string.Empty;
+    private bool loading = true;
 
-    [Parameter]
-    public EventCallback<string> OnNewCommentTextChanged { get; set; }
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadComments();
+    }
 
-    [Parameter]
-    public bool PostingComment { get; set; }
-
-    [Parameter]
-    public string PostCommentError { get; set; } = string.Empty;
-
-    [Parameter]
-    public EventCallback<string> OnPostComment { get; set; }
+    private async Task LoadComments()
+    {
+        loading = true;
+        comments.Clear();
+        postCommentError = string.Empty;
+        var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value;
+        var client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (client != null && !string.IsNullOrEmpty(ItemId))
+        {
+            try
+            {
+                comments = await client.GetComments(ItemId);
+            }
+            catch (Exception ex)
+            {
+                postCommentError = ex.Message;
+            }
+        }
+        loading = false;
+        StateHasChanged();
+    }
 
     private async Task PostComment()
     {
-        await OnPostComment.InvokeAsync(NewCommentText);
+        postCommentError = string.Empty;
+        postingComment = true;
+        var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value;
+        var client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (client != null && !string.IsNullOrEmpty(ItemId) && !string.IsNullOrWhiteSpace(newCommentText))
+        {
+            try
+            {
+                var success = await client.PostComment(ItemId, newCommentText);
+                if (success)
+                {
+                    newCommentText = string.Empty;
+                    await LoadComments();
+                }
+                else
+                {
+                    postCommentError = "Failed to post comment.";
+                }
+            }
+            catch (Exception ex)
+            {
+                postCommentError = ex.Message;
+            }
+        }
+        postingComment = false;
+        StateHasChanged();
     }
 
-    private async Task OnTextChanged(ChangeEventArgs e)
-    {
-        var value = e.Value?.ToString() ?? string.Empty;
-        await OnNewCommentTextChanged.InvokeAsync(value);
-    }
 
     private IEnumerable<string> GetCommentUser(Comment comment)
     {
@@ -222,14 +167,19 @@
         return new[] { "Unknown User" };
     }
 
+    private DateTime GetCommentDate(Comment comment)
+    {
+        if (!string.IsNullOrWhiteSpace(comment.PostedAt) && DateTime.TryParse(comment.PostedAt, out var postedAt))
+        {
+            return postedAt;
+        }
+        return comment.CreatedAt;
+    }
+
     private string GetFormattedDate(Comment comment)
     {
-        if (!string.IsNullOrWhiteSpace(comment.PostedAt))
-        {
-            return comment.PostedAt;
-        }
-        
-        var timeAgo = DateTime.Now - comment.CreatedAt;
+        var date = GetCommentDate(comment);
+        var timeAgo = DateTime.Now - date;
         if (timeAgo.TotalMinutes < 1)
             return "Just now";
         if (timeAgo.TotalHours < 1)
@@ -238,7 +188,7 @@
             return $"{(int)timeAgo.TotalHours}h ago";
         if (timeAgo.TotalDays < 7)
             return $"{(int)timeAgo.TotalDays}d ago";
-        
-        return comment.CreatedAt.ToString("MMM dd");
+
+        return date.ToString("MMM dd");
     }
 }
