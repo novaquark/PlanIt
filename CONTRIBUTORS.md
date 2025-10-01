@@ -4,6 +4,7 @@
 
 ### Developers
 * [Bhushan Ramteke](https://github.com/bhooshan0x01)
+* [Krutika Patel](https://github.com/KrutikaPatel03)
 * [Pabitro Singh](https://github.com/pabitrosingh)
 
 ### Project owner

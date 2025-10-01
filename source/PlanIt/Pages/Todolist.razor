@@ -5,7 +5,7 @@
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
-
+@inject IWorkSummaryService WorkSummaryService
 <PageTitle>Todolist</PageTitle>
 
 <h1>My Todo list</h1>
@@ -132,5 +132,5 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
-    }
+    }  
 }
