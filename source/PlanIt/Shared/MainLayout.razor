@@ -2,7 +2,7 @@
 @inherits LayoutComponentBase
 @inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager NavigationManager
-@inject ITodoListSummaryService TodoListSummaryService
+@inject IWorkSummaryService WorkSummaryService
 @* Required *@
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -22,31 +22,48 @@
                            OnClick="@((e) => DrawerToggle())" />
 
             <MudText Typo="Typo.body2" Class="ml-2">
-                @if (HttpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false)
+                @if (!string.IsNullOrEmpty(LoggedInUser))
                 {
-                    <p>Connected as @HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value</p>
+                    <p>Connected as @LoggedInUser</p>
                 }
             </MudText>
         </div>
-        @if (IsTodoListPage)
-        {
-            <div class="appbar-center">
-                <MudText Typo="Typo.body2" Class="d-flex align-center flex-wrap gap-1">
-                    I have
-                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"> <MudText Typo="Typo.caption">@TodoListSummaryService.MajorBugs major bugs</MudText></MudChip>
-                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"><MudText Typo="Typo.caption">@TodoListSummaryService.MinorBugs bugs</MudText></MudChip>
-                    <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip"><MudText Typo="Typo.caption">@TodoListSummaryService.Tasks tasks</MudText></MudChip>
-                    assigned to me
-                </MudText>
-            </div>
-            <div class="appbar-right d-flex align-center">
-                <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip">
-                    @TodoListSummaryService.DaysLeft days left in sprint <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="GoToSprint">
-                        (go to)
-                    </MudButton>
-                </MudChip>
-            </div>
-        }
+        <div class="appbar-center">
+            <MudText Typo="Typo.body2" Class="d-flex align-center flex-wrap gap-1">
+                @if (WorkSummaryService.MajorBugs == 0
+                                && WorkSummaryService.MinorBugs == 0
+                                && WorkSummaryService.Tasks == 0)
+                {
+                    <p>You have no work items assigned</p>
+                }
+                else
+                {
+                    <p>I have</p>
+
+                    if (WorkSummaryService.MajorBugs > 0)
+                    {
+                        <MudChip T="string" Color="Color.Error"> <MudText Typo="Typo.caption">@WorkSummaryService.MajorBugs major bugs</MudText></MudChip>
+                    }
+                    if (WorkSummaryService.MinorBugs > 0)
+                    {
+                        <MudChip T="string" Color="Color.Warning"><MudText Typo="Typo.caption">@WorkSummaryService.MinorBugs bugs</MudText></MudChip>
+                    }
+                    if (WorkSummaryService.Tasks > 0)
+                    {
+                        <MudChip T="string" Color="Color.Success"><MudText Typo="Typo.caption">@WorkSummaryService.Tasks tasks</MudText></MudChip>
+                    }
+
+                    <p>assigned to me</p>
+                }
+            </MudText>
+        </div>
+        <div class="appbar-right d-flex align-center">
+            <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip">
+                @WorkSummaryService.DaysLeft days left in sprint <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="GoToSprint">
+                    (go to)
+                </MudButton>
+            </MudChip>
+        </div>
     </MudAppBar>
     <MudDrawer @bind-Open="@_drawerOpen">
         <NavMenu />
@@ -61,10 +78,16 @@
 
 @code {
     bool _drawerOpen = true;
-    bool IsTodoListPage => NavigationManager.Uri.Contains("/todolist", StringComparison.OrdinalIgnoreCase);
-    protected override void OnInitialized()
+    string? LoggedInUser;
+    protected override async Task OnInitializedAsync()
     {
-        TodoListSummaryService.OnChange += StateHasChanged;
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            LoggedInUser = displayName;
+            await WorkSummaryService.RefreshAsync(displayName, email);
+        }
     }
     void DrawerToggle()
     {

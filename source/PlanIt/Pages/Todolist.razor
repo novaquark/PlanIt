@@ -5,7 +5,7 @@
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
-@inject ITodoListSummaryService TodoListSummaryService
+@inject IWorkSummaryService WorkSummaryService
 <PageTitle>Todolist</PageTitle>
 
 <h1>My Todo list</h1>
@@ -103,7 +103,6 @@ else
             }
 
             loaded = true;
-            UpdateSummary();
             StateHasChanged();
         }
     }
@@ -133,23 +132,5 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
-    }
-    private void UpdateSummary()
-    {
-        TodoListSummaryService.MajorBugs = myOpenShowstoppers?.Count ?? 0;
-        TodoListSummaryService.MinorBugs = myOpenBugs?.Count ?? 0;
-        TodoListSummaryService.Tasks = mySprintItems?.Count ?? 0;
-        TodoListSummaryService.DaysLeft = CalculateDaysLeft();
-
-        TodoListSummaryService.NotifyStateChanged();
-    }
-    private int CalculateDaysLeft()
-    {
-        // TODO: Example: sprint ends on Oct 15
-        var sprintEnd = new DateTime(2025, 10, 15);
-        var today = DateTime.Today;
-
-        var daysLeft = (sprintEnd - today).Days;
-        return daysLeft < 0 ? 0 : daysLeft;
-    }
+    }  
 }

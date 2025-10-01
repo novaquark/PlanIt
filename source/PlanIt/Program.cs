@@ -82,7 +82,7 @@ builder.Services.AddSingleton<IProjectDetailsService>(serviceProvider =>
     }
     return projectDetailsService;
 });
-builder.Services.AddScoped<ITodoListSummaryService, TodoListSummaryService>();
+builder.Services.AddScoped<IWorkSummaryService, WorkSummaryService>();
 
 var app = builder.Build();
 app.UseSession();
