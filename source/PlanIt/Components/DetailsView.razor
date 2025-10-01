@@ -1,0 +1,236 @@
+@using P4PlanLib.Model
+@using MudBlazor
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+<MudContainer Fixed="true" Gutters="false" Style="width: 75rem;">
+    <MudStack Row="true" Spacing="1">
+        <MudPaper Width="55rem;" Square="true">
+            <MudStack Row="false" Spacing="1">
+                <MudPaper Height="3rem;" Square="true" Class="d-flex justify-space-between align-center px-2">
+                    <MudText Typo="Typo.h6">@Abbrev(item?.Name, 60)</MudText>
+                    <MudLink Href="@($"/details/{ItemId}")" Class="mud-typography-button">Parent Task →</MudLink>
+                </MudPaper>
+                <MudPaper Square="true">
+                    <MudStack Row="true" Spacing="1">
+                        <MudPaper Width="37.5rem;" Square="true">
+                            <MudStack Row="true" Spacing="1">
+                                <MudPaper Height="3rem;" Width="17rem;" Square="true"
+                                    Style="@GetPriorityStyle(item?.Priority)" Class="d-flex justify-center align-center">
+                                    <MudText Style="color: white; font-weight: bold;">@GetPriorityText(item?.Priority)
+                                    </MudText>
+                                </MudPaper>
+                                <MudPaper Height="3rem;" Width="17rem;" Square="true"
+                                    Style="@GetSeverityStyle(item?.Severity)" Class="d-flex justify-center align-center">
+                                    <MudText Style="color: white; font-weight: bold;">@GetSeverityText(item?.Severity)
+                                    </MudText>
+                                </MudPaper>
+                                <MudPaper Height="3rem;" Width="30rem;" Square="true" Class="d-flex justify-center align-center">
+                                    @if (item?.AssignedTo != null && item.AssignedTo.Length > 0)
+                                    {
+                                        var firstUser = item.AssignedTo.FirstOrDefault(a => a.User != null)?.User?.Name;
+                                        var count = item.AssignedTo.Count(a => a.User != null);
+                                        if (!string.IsNullOrEmpty(firstUser))
+                                        {
+                                            <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small"
+                                                Color="Color.Primary" Icon="@Icons.Material.Filled.Person">@firstUser</MudChip>
+                                            <MudChip T="string" Color="Color.Info" Size="Size.Small">@count</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small"
+                                                Icon="@Icons.Material.Filled.Person">unassigned</MudChip>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small"
+                                            Icon="@Icons.Material.Filled.Person">unassigned</MudChip>
+                                    }
+                                </MudPaper>
+                                <MudPaper Height="3rem;" Width="25rem;" Square="true" Class="d-flex justify-center align-center">
+                                    @if (item?.CommittedTo != null)
+                                    {
+                                        <div style="margin-left: 10px;
+                                                        color: #1f2937;
+                                                        font-weight: 500;">
+                                            <MudLink Href="@item.CommittedTo.ItemLink" Target="_blank"
+                                                Class="mud-typography-body2">@item.CommittedTo.Name →</MudLink>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="padding: 1rem;
+                                                        color: #9ca3af;
+                                                        font-weight: 500;">
+                                            No Sprint
+                                        </div>
+                                    }
+                                </MudPaper>
+                            </MudStack>
+                            <MudPaper Height="15rem;" Square="true">
+                                <MudText Typo="Typo.body1">@item?.Description </MudText>
+                            </MudPaper>
+                        </MudPaper>
+                        <MudPaper Width="17rem;" Square="true" Class="d-flex flex-column" Height="18rem;">
+                            <div style="padding: 0.75rem;
+                            border-bottom: 1px solid #e5e7eb;
+                            background: #f8fafc;">
+                                <MudText Typo="Typo.subtitle2" Style="color: #1f2937; font-weight: 600; margin: 0;">
+                                    Breaks into (@(childItems?.Count ?? 0)) sub tasks
+                                </MudText>
+                            </div>
+
+                            <div class="pa-2" style="flex:1; overflow-y:auto;">
+                                @if (childItems == null)
+                                {
+                                    <div class="d-flex align-center justify-center" style="height:100%;">
+                                        <MudProgressCircular Size="Size.Small" Indeterminate />
+                                        <MudText Typo="Typo.caption" Class="ml-2 mud-text-secondary">Loading...</MudText>
+                                    </div>
+                                }
+                                else if (childItems.Count == 0)
+                                {
+                                    <div style="display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                        justify-content: center;
+                                        height: 100%;
+                                        color: #9ca3af;
+                                        text-align: center;">
+                                        <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Large"
+                                            Style="margin-bottom: 0.5rem;" />
+                                        <MudText Style="font-size: 0.75rem;">No child items</MudText>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var child in childItems)
+                                    {
+                                        <MudLink Href="@($"/details/{child.Id}")" Class="d-block pa-2 mb-1">
+                                            <div class="d-flex" style="align-items: center; gap: 0.5rem;">
+                                                <div
+                                                    style="@GetPriorityStyle(child.Priority); width: 20px; height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                    <MudIcon Icon="@GetPriorityIcon(child.Priority)" Size="Size.Small"
+                                                        Style="color: white; font-size: 0.75rem;" />
+                                                </div>
+
+                                                <div
+                                                    style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem;">
+                                                    <MudText Typo="Typo.body2" Class="mud-truncate">@child.Name</MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@child.Type •
+                                                        @child.Status</MudText>
+                                                </div>
+                                            </div>
+                                        </MudLink>
+                                    }
+                                }
+                            </div>
+
+                        </MudPaper>
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudPaper>
+        <MudPaper Width="20rem;" Square="true">
+            <LastCommentsSection ItemId="@ItemId" />
+        </MudPaper>
+    </MudStack>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string ItemId { get; set; } = string.Empty;
+
+    private Item? item;
+    private List<Item>? childItems;
+    private bool loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        item = null;
+        childItems = null;
+        var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type ==
+        System.Security.Claims.ClaimTypes.Email)?.Value;
+        var client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (client != null && !string.IsNullOrEmpty(ItemId))
+        {
+            item = await client.GetBacklogItem(ItemId);
+            childItems = await client.GetItemChildrenAsync(ItemId, false);
+        }
+        loading = false;
+        StateHasChanged();
+    }
+
+    private void NavigateToChild(string childId)
+    {
+        Navigation.NavigateTo($"/details/{childId}");
+    }
+
+    private string GetPriorityText(string? priority)
+    {
+        return priority switch
+        {
+            "veryHigh" => "1 - VH",
+            "high" => "2 - H",
+            "medium" => "3 - M",
+            "low" => "5 - L",
+            "veryLow" => "6 - VL",
+            _ => "4 - NA"
+        };
+    }
+
+    private string GetPriorityStyle(string? priority)
+    {
+        var backgroundColor = priority switch
+        {
+            "veryHigh" => "#dc3545", // Red - Very High
+            "high" => "#fd7e14", // Orange - High
+            "medium" => "#ffc107", // Yellow - Medium
+            "low" => "#6f42c1", // Purple - Low
+            "veryLow" => "#6c757d", // Gray - Very Low
+            _ => "#20c997" // Teal - No Priority
+        };
+
+        return $"background: {backgroundColor}; border-radius: 4px;";
+    }
+
+    private string GetSeverityText(string? severity)
+    {
+        return severity switch
+        {
+            "Critical" => "CRIT",
+            "High" => "HIGH",
+            "Medium" => "MED",
+            "Low" => "LOW",
+            _ => "N/A"
+        };
+    }
+
+    private string GetSeverityStyle(string? severity)
+    {
+        var backgroundColor = severity switch
+        {
+            "Critical" => "#dc2626", // Dark Red - Critical
+            "High" => "#ea580c", // Dark Orange - High
+            "Medium" => "#d97706", // Amber - Medium
+            "Low" => "#059669", // Green - Low
+            _ => "#6b7280" // Gray - No Severity
+        };
+
+        return $"background: {backgroundColor}; border-radius: 4px;";
+    }
+
+    private string GetPriorityIcon(string? priority)
+    {
+        return Icons.Material.Filled.PriorityHigh;
+    }
+
+    private static string Abbrev(string? text, int max = 60)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        return text.Length <= max ? text : text.Substring(0, max) + "…";
+    }
+}
