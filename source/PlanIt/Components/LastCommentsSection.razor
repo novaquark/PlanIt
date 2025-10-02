@@ -1,0 +1,194 @@
+@using P4PlanLib.Model
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IHttpContextAccessor HttpContextAccessor
+
+<MudStack Direction="Column" Spacing="1" Class="pa-3" Style="height:100%;">
+    
+
+    @if (loading)
+    {
+        <div class="d-flex align-center justify-center">
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Loading comments...</MudText>
+        </div>
+    }
+    else if (comments.Count == 0)
+    {
+        <div class="d-flex flex-column align-center justify-center" style="flex:1;">
+            <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Large" Class="mud-text-secondary" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">No comments yet</MudText>
+        </div>
+    }
+    else
+    {
+        var lastComment = comments.OrderBy(c => GetCommentDate(c)).LastOrDefault();
+        if (lastComment != null)
+        {
+            <div class="mb-2" style="flex:1; overflow-y:auto; min-height:0;">
+
+                <div style="display: flex; 
+                            align-items: center; 
+                            gap: 0.5rem; 
+                            margin-bottom: 0.5rem;">
+                    <UserComponent Users="@GetCommentUser(lastComment)" 
+                                   DisplayMode="UserComponent.UserDisplayMode.CommentAvatar" />
+                    <div style="flex: 1; 
+                                min-width: 0;">
+                        <div style="font-weight: 600; 
+                                    color: #1f2937; 
+                                    font-size: 0.75rem;">
+                            @(lastComment.PostedBy?.Name ?? lastComment.CreatedBy ?? "Unknown User")
+                        </div>
+                        <div style="color: #9ca3af; 
+                                    font-size: 0.625rem;">
+                            @GetFormattedDate(lastComment)
+                        </div>
+                    </div>
+                    @if (comments.Count > 1)
+                    {
+                        <MudLink Href="@($"/details/{ItemId}")" Class="mud-typography-caption">
+                            +@(comments.Count - 1) more
+                        </MudLink>
+                    }
+                </div>
+                
+                <MudText Typo="Typo.body2" Style="white-space: pre-wrap; margin-left: 2rem;">
+                    @lastComment.Text
+                </MudText>
+                
+                @if (lastComment.Attachments != null && lastComment.Attachments.Length > 0)
+                {
+                    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="1" Class="ml-4 mt-1">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">@lastComment.Attachments.Length attachment(s)</MudText>
+                    </MudStack>
+                }
+            </div>
+        }
+    }
+
+    <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Start">
+    <MudTextField T="string" Lines="2" FullWidth="true" Placeholder="Quick reply..." Immediate="true" @bind-Value="newCommentText" />
+    <MudButton OnClick="PostComment" Disabled="@(string.IsNullOrWhiteSpace(newCommentText) || postingComment)">
+        @if (postingComment)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+        }
+        else
+        {
+            <span>Reply</span>
+        }
+    </MudButton>
+</MudStack>
+@if (!string.IsNullOrEmpty(postCommentError))
+{
+    <MudAlert Severity="Severity.Error" Dense="true">@postCommentError</MudAlert>
+}
+</MudStack>
+
+@code {
+    [Parameter]
+    public string ItemId { get; set; } = string.Empty;
+
+    private List<Comment> comments = new();
+    private string newCommentText = string.Empty;
+    private bool postingComment = false;
+    private string postCommentError = string.Empty;
+    private bool loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadComments();
+    }
+
+    private async Task LoadComments()
+    {
+        loading = true;
+        comments.Clear();
+        postCommentError = string.Empty;
+        var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value;
+        var client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (client != null && !string.IsNullOrEmpty(ItemId))
+        {
+            try
+            {
+                comments = await client.GetComments(ItemId);
+            }
+            catch (Exception ex)
+            {
+                postCommentError = ex.Message;
+            }
+        }
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task PostComment()
+    {
+        postCommentError = string.Empty;
+        postingComment = true;
+        var email = HttpContextAccessor.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value;
+        var client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (client != null && !string.IsNullOrEmpty(ItemId) && !string.IsNullOrWhiteSpace(newCommentText))
+        {
+            try
+            {
+                var success = await client.PostComment(ItemId, newCommentText);
+                if (success)
+                {
+                    newCommentText = string.Empty;
+                    await LoadComments();
+                }
+                else
+                {
+                    postCommentError = "Failed to post comment.";
+                }
+            }
+            catch (Exception ex)
+            {
+                postCommentError = ex.Message;
+            }
+        }
+        postingComment = false;
+        StateHasChanged();
+    }
+
+
+    private IEnumerable<string> GetCommentUser(Comment comment)
+    {
+        if (!string.IsNullOrWhiteSpace(comment.PostedBy?.Name))
+        {
+            return new[] { comment.PostedBy.Name };
+        }
+        if (!string.IsNullOrWhiteSpace(comment.CreatedBy))
+        {
+            return new[] { comment.CreatedBy };
+        }
+        return new[] { "Unknown User" };
+    }
+
+    private DateTime GetCommentDate(Comment comment)
+    {
+        if (!string.IsNullOrWhiteSpace(comment.PostedAt) && DateTime.TryParse(comment.PostedAt, out var postedAt))
+        {
+            return postedAt;
+        }
+        return comment.CreatedAt;
+    }
+
+    private string GetFormattedDate(Comment comment)
+    {
+        var date = GetCommentDate(comment);
+        var timeAgo = DateTime.Now - date;
+        if (timeAgo.TotalMinutes < 1)
+            return "Just now";
+        if (timeAgo.TotalHours < 1)
+            return $"{(int)timeAgo.TotalMinutes}m ago";
+        if (timeAgo.TotalDays < 1)
+            return $"{(int)timeAgo.TotalHours}h ago";
+        if (timeAgo.TotalDays < 7)
+            return $"{(int)timeAgo.TotalDays}d ago";
+
+        return date.ToString("MMM dd");
+    }
+}
