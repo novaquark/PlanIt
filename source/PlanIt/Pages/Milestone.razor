@@ -73,8 +73,8 @@ else
 
             var comparer = new P4PlanLib.ItemComparer();
 
-            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
-			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
+            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
+			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
             originalRankedList = new ObservableCollection<P4PlanLib.Model.Item>();
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
