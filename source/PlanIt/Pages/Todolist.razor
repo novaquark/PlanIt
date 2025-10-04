@@ -1,6 +1,8 @@
 ﻿@page "/todolist"
 @using GraphQL
 @using System.Security.Claims
+@using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -20,6 +22,7 @@
 else
 {
     <MudText>Ordered by Showstoppers > Sprint tasks > Open bugs not in sprint > Backlog</MudText>
+    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
 
     <MudTable Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
         <ColGroup>
@@ -132,5 +135,16 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
+    }
+    private void HandleFilterApplied(FilterResult<Item> result)
+    {
+        rankedList?.Clear();
+        if (result.FilteredItems != null)
+        {
+            foreach (var item in result.FilteredItems)
+            {
+                rankedList?.Add(item);
+            }
+        }
     }
 }

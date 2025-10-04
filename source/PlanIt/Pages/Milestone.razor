@@ -3,6 +3,7 @@
 @using System.Security.Claims
 @using System.Collections.ObjectModel
 @using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -23,6 +24,7 @@ else if (!loaded)
 }
 else
 {
+    <FilterToolbar TModel="Item" TargetItems="originalRankedList" OnApplyFilter="HandleFilterApplied" />
     <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
         <ColGroup>
             <col style="width: 50px;" />
@@ -50,9 +52,9 @@ else
 
 @code {
     private ObservableCollection<P4PlanLib.Model.Item>? dashboardItems { get; set; }
+    private ObservableCollection<P4PlanLib.Model.Item>? originalRankedList { get; set; }
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
-
 
     private P4PlanLib.IP4PlanClient? p4PlanClient;
 
@@ -74,10 +76,12 @@ else
             dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
 			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
+            originalRankedList = new ObservableCollection<P4PlanLib.Model.Item>();
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
 			foreach (var item in dashboardItems)
             {
                 item.Type = "Bug";
+                originalRankedList.Add(item);
                 rankedList.Add(item);
             }
 
@@ -85,6 +89,7 @@ else
 			{
 				item.Type = "Backlog";
 				dashboardItems.Add(item);
+                originalRankedList.Add(item);
 				rankedList.Add(item);
 			}
 
@@ -129,5 +134,16 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
+    }
+    private void HandleFilterApplied(FilterResult<Item> result)
+    {
+        rankedList?.Clear();
+        if (result.FilteredItems != null)
+        {
+            foreach (var item in result.FilteredItems)
+            {
+                rankedList?.Add(item);
+            }
+        }
     }
 }

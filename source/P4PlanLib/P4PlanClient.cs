@@ -29,7 +29,7 @@ public class P4PlanClient : IP4PlanClient
     private readonly GraphQLHttpClient _client;
     private bool _connected = false;
     private string _connectedUsername = string.Empty;
-    
+
     public async Task LoginAsync(string username, string password)
     {
         _token = string.Empty;
@@ -537,7 +537,7 @@ public class P4PlanClient : IP4PlanClient
         var response = await _client.SendMutationAsync<dynamic>(request);
         return response.Data != null && response.Data?.postComment != null && response.Data?.postComment.id != null;
     }
-    
+
     public async Task<List<Item>> GetItemChildrenAsync(string backlogEntryId, bool includeCompletedTasks = false)
     {
         var parentItem = await GetBacklogItem(backlogEntryId);
@@ -555,6 +555,45 @@ public class P4PlanClient : IP4PlanClient
         var children = await Search(searchQuery);
         return children;
     }
+
+    public Task<IEnumerable<string>> GetPrioritiesAsync()
+    {
+        // TODO: Implement actual GraphQL query to get priorities from P4Plan server
+        var priorities = new List<string>
+        {
+            "veryHigh",
+            "high",
+            "medium",
+            "low",
+            "veryLow"
+        };
+        return Task.FromResult<IEnumerable<string>>(priorities);
+    }
+
+    public async Task<IEnumerable<string>> GetSprintsAsync()
+    {
+        var items = await Search("");
+        return items
+            .Select(i => i.CommittedTo?.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    public async Task<IEnumerable<string>> GetStatusesAsync()
+    {
+        var items = await Search("");
+        return items
+            .Select(i => i.Status)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!)
+            .Distinct()
+            .OrderBy(s => s)
+            .ToList();
+    }
+
 
     #endregion
 }

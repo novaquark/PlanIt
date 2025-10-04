@@ -1,0 +1,331 @@
+@typeparam TModel
+@using MudBlazor
+@using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
+
+<MudPaper Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="12" md="12" lg="12">
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="@((Criteria.OnlyMyTasks) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.OnlyMyTasks)))" StartIcon="@Icons.Material.Filled.Person">
+                    Only My Tasks
+                </MudButton>
+                <MudButton Variant="@((Criteria.TopPriority) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.TopPriority)))" StartIcon="@Icons.Material.Filled.PriorityHigh">
+                    Top Priority
+                </MudButton>
+            </MudStack>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="Priority" Value="Criteria.Priority" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Priority), v))" Dense="true" Clearable="true" Searchable="true">
+                @if (Priorities != null)
+                {
+                    @foreach(var p in Priorities) { <MudSelectItem Value="@p">@BeautifyPriority(p)</MudSelectItem> }
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="Sprint" Value="Criteria.Sprint" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Sprint), v))" Dense="true" Clearable="true" Searchable="true">
+                @if (Sprints != null)
+                {
+                    @foreach(var p in Sprints) { <MudSelectItem Value="@p">@p</MudSelectItem> }
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="Status" Value="Criteria.Status" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Status), v))" Dense="true" Clearable="true" Searchable="true">
+                @if (Statuses != null)
+                {
+                    @foreach(var p in Statuses) { <MudSelectItem Value="@p">@p</MudSelectItem> }
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" Label="Assigneed To" Value="Criteria.Assignee" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Assignee), v))" Dense="true" Immediate="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
+        </MudItem>
+
+         <MudItem xs="12" sm="6" md="3">
+            <MudTextField T="string" Label="Committed To" Value="Criteria.Committed" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Committed), v))" Dense="true" Immediate="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TaskAlt" />
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="Justify.SpaceBetween">
+                <div>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.FilterAlt" OnClick="@ApplyFilters">Refresh</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Clear" OnClick="@Cancel">Reset</MudButton>
+                </div>
+                <div>
+                    <MudText Typo="Typo.body2">JQL: @JqlPreview</MudText>
+                </div>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    [Parameter] public IEnumerable<TModel> TargetItems { get; set; } = new List<TModel>();
+    [Parameter] public EventCallback<FilterResult<TModel>> OnApplyFilter { get; set; }
+    [Inject] private IFilterToolbarLookupService _lookupService { get; set; } = null!;
+    private FilterCriteria Criteria { get; set; } = new();
+    protected string JqlPreview { get; set; } = string.Empty;
+    private List<TModel> _originalItems = new();
+
+    IEnumerable<string>? Priorities, Sprints, Statuses;
+
+    private static string BeautifyPriority(string? code)
+    {
+        return code?.ToLowerInvariant() switch
+        {
+            "verylow" => "6 - Very Low",
+            "low" => "5 - Low",
+            "medium" => "3 - Medium",
+            "high" => "2 - High",
+            "veryhigh" => "1 - Very High",
+            _ => "4 - No prio"
+        };
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (TargetItems != null)
+        {
+            var incoming = TargetItems.ToList();
+            if (_originalItems.Count == 0 || incoming.Count > _originalItems.Count)
+            {
+                _originalItems = incoming;
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_lookupService != null)
+        {
+            Priorities = await SafeCall(() => _lookupService.GetPrioritiesAsync());
+            Sprints = await SafeCall(() => _lookupService.GetSprintsAsync());
+            Statuses = await SafeCall(() => _lookupService.GetStatusesAsync());
+        }
+        BuildJqlPreview();
+    }
+
+    private async Task<IEnumerable<string>> SafeCall(Func<Task<IEnumerable<string>>> fn)
+    {
+        try
+        {
+            return await fn();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    private void Toggle(string propName)
+    {
+        switch (propName)
+        {
+            case nameof(Criteria.OnlyMyTasks): Criteria.OnlyMyTasks = !Criteria.OnlyMyTasks; break;
+            case nameof(Criteria.TopPriority): Criteria.TopPriority = !Criteria.TopPriority; break;
+        }
+        BuildJqlPreview();
+        _ = ApplyFilters();
+    }
+
+
+    private void OnSelectChanged(string propName, string? value)
+    {
+        switch (propName)
+        {
+            case nameof(Criteria.Priority): Criteria.Priority = value; break;
+            case nameof(Criteria.Sprint): Criteria.Sprint = value; break;
+            case nameof(Criteria.Status): Criteria.Status = value; break;
+        }
+        BuildJqlPreview();
+        _ = ApplyFilters();
+    }
+
+    private void OnTextChanged(string propName, string? value)
+    {
+        switch (propName)
+        {
+            case nameof(Criteria.Assignee): Criteria.Assignee = value; break;
+            case nameof(Criteria.Committed): Criteria.Committed = value; break;
+        }
+        BuildJqlPreview();
+        _ = ApplyFilters();
+    }
+
+
+    private async Task ApplyFilters()
+    {
+        var source = _originalItems.Any() ? _originalItems : TargetItems.ToList();
+        var filtered = source.ToList();
+
+        // Current user info for OnlyMyTasks
+        var currentEmail = await _lookupService.GetCurrentUserEmailAsync();
+        var currentName = await _lookupService.GetCurrentUserDisplayNameAsync();
+
+        // Only my tasks
+        if (Criteria.OnlyMyTasks)
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    var assignees = it.AssignedTo?.Select(a => a.User?.Name).Where(n => !string.IsNullOrWhiteSpace(n)) ?? Enumerable.Empty<string>();
+                    return assignees.Any(n => string.Equals(n, currentEmail, StringComparison.OrdinalIgnoreCase) || string.Equals(n, currentName, StringComparison.OrdinalIgnoreCase));
+                }
+                // Fallback: try reflection for a string AssignedTo
+                var prop = item?.GetType().GetProperty("AssignedTo");
+                var val = prop?.GetValue(item)?.ToString();
+                return !string.IsNullOrEmpty(val) && (string.Equals(val, currentEmail, StringComparison.OrdinalIgnoreCase) || string.Equals(val, currentName, StringComparison.OrdinalIgnoreCase));
+            }).ToList();
+        }
+
+        // Top priority (veryHigh)
+
+        if (Criteria.TopPriority)
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    return string.Equals(it.Priority, "veryHigh", StringComparison.OrdinalIgnoreCase);
+                }
+                var prop = item?.GetType().GetProperty("Priority");
+                var val = prop?.GetValue(item)?.ToString();
+                return string.Equals(val, "veryHigh", StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        // Priority equals selected
+        if (!string.IsNullOrWhiteSpace(Criteria.Priority))
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    return string.Equals(it.Priority, Criteria.Priority, StringComparison.OrdinalIgnoreCase);
+                }
+                var prop = item?.GetType().GetProperty("Priority");
+                var val = prop?.GetValue(item)?.ToString();
+                return string.Equals(val, Criteria.Priority, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        // Sprint equals selected (CommittedTo.Name)
+        if (!string.IsNullOrWhiteSpace(Criteria.Sprint))
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    return string.Equals(it.CommittedTo?.Name, Criteria.Sprint, StringComparison.OrdinalIgnoreCase);
+                }
+                var prop = item?.GetType().GetProperty("CommittedTo");
+                var nameProp = prop?.GetValue(item)?.GetType().GetProperty("Name");
+                var val = nameProp?.GetValue(prop?.GetValue(item))?.ToString();
+                return string.Equals(val, Criteria.Sprint, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        // Status equals selected
+        if (!string.IsNullOrWhiteSpace(Criteria.Status))
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    return string.Equals(it.Status, Criteria.Status, StringComparison.OrdinalIgnoreCase);
+                }
+                var prop = item?.GetType().GetProperty("Status");
+                var val = prop?.GetValue(item)?.ToString();
+                return string.Equals(val, Criteria.Status, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        // Assignee contains text
+        if (!string.IsNullOrWhiteSpace(Criteria.Assignee))
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    var assignees = it.AssignedTo?.Select(a => a.User?.Name).Where(n => !string.IsNullOrWhiteSpace(n)) ?? Enumerable.Empty<string>();
+                    return assignees.Any(n => n.Contains(Criteria.Assignee!, StringComparison.OrdinalIgnoreCase));
+                }
+                var prop = item?.GetType().GetProperty("AssignedTo");
+                var val = prop?.GetValue(item)?.ToString();
+                return !string.IsNullOrEmpty(val) && val.Contains(Criteria.Assignee!, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        // Committed sprint text contains
+        if (!string.IsNullOrWhiteSpace(Criteria.Committed))
+        {
+            filtered = filtered.Where(item =>
+            {
+                if (item is Item it)
+                {
+                    return (it.CommittedTo?.Name ?? string.Empty).Contains(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
+                }
+                var prop = item?.GetType().GetProperty("CommittedTo");
+                var nameProp = prop?.GetValue(item)?.GetType().GetProperty("Name");
+                var val = nameProp?.GetValue(prop?.GetValue(item))?.ToString() ?? string.Empty;
+                return val.Contains(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+        }
+
+        await OnApplyFilter.InvokeAsync(new FilterResult<TModel>
+        {
+            Criteria = Criteria,
+            FilteredItems = filtered
+        });
+    }
+
+
+    private Task<string?> GetCurrentUserName()
+    {
+        if (_lookupService is FilterToolbarLookupService concreteLookup)
+        {
+            var method = typeof(FilterToolbarLookupService).GetMethod("GetCurrentUserName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (method != null)
+            {
+                return Task.FromResult(method.Invoke(concreteLookup, null) as string);
+            }
+        }
+        return Task.FromResult<string?>(null);
+    }
+
+
+    private async void Cancel()
+    {
+        Criteria.Reset();
+        BuildJqlPreview();
+        // Reset to unfiltered data in parent
+        await OnApplyFilter.InvokeAsync(new FilterResult<TModel>
+        {
+            Criteria = Criteria,
+            FilteredItems = (_originalItems.Any() ? _originalItems : TargetItems.ToList())
+        });
+    }
+
+    private void BuildJqlPreview()
+    {
+        var parts = new List<string>();
+        if (Criteria.OnlyMyTasks) parts.Add("assignee = currentUser()");
+        if (Criteria.TopPriority) parts.Add("priority = \"veryHigh\"");
+        if (!string.IsNullOrWhiteSpace(Criteria.Priority)) parts.Add($"priority = \"{Criteria.Priority}\"");
+        if (!string.IsNullOrWhiteSpace(Criteria.Sprint)) parts.Add($"committedTo = \"{Criteria.Sprint}\"");
+        if (!string.IsNullOrWhiteSpace(Criteria.Status)) parts.Add($"status = \"{Criteria.Status}\"");
+        if (!string.IsNullOrWhiteSpace(Criteria.Assignee)) parts.Add($"assignee ~ \"{Criteria.Assignee}\"");
+        if (!string.IsNullOrWhiteSpace(Criteria.Committed)) parts.Add($"committedTo ~ \"{Criteria.Committed}\"");
+
+
+
+        JqlPreview = parts.Count == 0 ? "No filter" : string.Join(" AND ", parts);
+    }
+}

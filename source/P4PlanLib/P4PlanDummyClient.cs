@@ -276,8 +276,8 @@ namespace P4PlanLib
 
         private string GetRandomDeveloper(Random random)
         {
-            var developers = new[] { 
-                "Development User", "alice@example.com", "bob@example.com", "charlie@example.com", 
+            var developers = new[] {
+                "Development User", "alice@example.com", "bob@example.com", "charlie@example.com",
                 "diana@example.com", "eve@example.com", "frank@example.com",
                 "grace@example.com", "henry@example.com", "iris@example.com"
             };
@@ -662,6 +662,52 @@ namespace P4PlanLib
             return Task.FromResult(results);
         }
 
+        public Task<IEnumerable<string>> GetPrioritiesAsync()
+        {
+            var order = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["veryHigh"] = 1,
+                ["high"] = 2,
+                ["medium"] = 3,
+                ["low"] = 5,
+                ["veryLow"] = 6,
+            };
+
+            var priorities = _items.Values
+                .Select(i => i.Priority)
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => p!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(p => order.TryGetValue(p, out var rank) ? rank : 4)
+                .ToList();
+
+            return Task.FromResult<IEnumerable<string>>(priorities);
+        }
+        public Task<IEnumerable<string>> GetSprintsAsync()
+        {
+            var sprints = _items.Values
+                .Select(i => i.CommittedTo?.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
+            return Task.FromResult<IEnumerable<string>>(sprints);
+        }
+
+        public Task<IEnumerable<string>> GetStatusesAsync()
+        {
+            var statuses = _items.Values
+                .Select(i => i.Status)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s!)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToList();
+            return Task.FromResult<IEnumerable<string>>(statuses);
+        }
+
+
         private List<Item> FilterByItemType(List<Item> items, string query)
         {
             if (query.Contains("Item type=bug") || query.Contains("Item type=\"bug\"") || query.Contains("\"Item type\"=bug"))
@@ -672,7 +718,7 @@ namespace P4PlanLib
             {
                 return items.Where(i => i.Type == "Epic" || i.Type == "Story" || i.Type == "Task").ToList();
             }
-            
+
             return items; // No type filter applied
         }
 
@@ -682,7 +728,7 @@ namespace P4PlanLib
             {
                 return items.Where(i => i.Status != "Done").ToList();
             }
-            
+
             return items; // No status filter applied
         }
 
@@ -698,7 +744,7 @@ namespace P4PlanLib
                 // Low/Medium severity bugs
                 return items.Where(i => i.Severity == "Low" || i.Severity == "Medium").ToList();
             }
-            
+
             return items; // No severity filter applied
         }
 
@@ -709,7 +755,7 @@ namespace P4PlanLib
                 // Sprint items (not in backlog)
                 return items.Where(i => i.CommittedTo?.Name != "Backlog").ToList();
             }
-            
+
             return items; // No sprint filter applied
         }
 
@@ -728,7 +774,7 @@ namespace P4PlanLib
                 var userName = assignTagMatch.Groups[1].Value ?? assignTagMatch.Groups[2].Value;
                 return items.Where(i => i.AssignedTo?.Any(a => a.User?.Name == userName) == true).ToList();
             }
-            
+
             return items; // No assignee filter applied
         }
 
@@ -739,27 +785,27 @@ namespace P4PlanLib
                 // Milestone items - return items that are not done
                 return items.Where(i => i.Status != "Done").ToList();
             }
-            
+
             return items; // No release tag filter applied
         }
 
         private bool IsTextSearch(string query)
         {
             // Check if this is a simple text search (no specific filters)
-            var hasFilters = query.Contains("Item type") || 
-                           query.Contains("Status") || 
-                           query.Contains("Severity") || 
-                           query.Contains("Committed to") || 
-                           query.Contains("Assigned to") || 
-                           query.Contains("Assign tag") || 
+            var hasFilters = query.Contains("Item type") ||
+                           query.Contains("Status") ||
+                           query.Contains("Severity") ||
+                           query.Contains("Committed to") ||
+                           query.Contains("Assigned to") ||
+                           query.Contains("Assign tag") ||
                            query.Contains("Release tag");
-            
+
             return !hasFilters;
         }
 
         private List<Item> FilterByText(List<Item> items, string query)
         {
-            return items.Where(item => 
+            return items.Where(item =>
                 item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 item.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 item.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();

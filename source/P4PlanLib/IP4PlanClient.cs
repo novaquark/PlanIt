@@ -15,4 +15,8 @@ public interface IP4PlanClient
     Task<List<Comment>> GetComments(string itemId);
     Task<bool> PostComment(string itemId, string text);
     Task<List<Item>> GetItemChildrenAsync(string backlogEntryId, bool includeCompletedTasks = false);
+    Task<IEnumerable<string>> GetPrioritiesAsync();
+        Task<IEnumerable<string>> GetSprintsAsync();
+        Task<IEnumerable<string>> GetStatusesAsync();
+
 }
