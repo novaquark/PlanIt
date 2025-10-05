@@ -24,7 +24,7 @@ else if (!loaded)
 }
 else
 {
-    <FilterToolbar TModel="Item" TargetItems="originalRankedList" OnApplyFilter="HandleFilterApplied" />
+    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
     <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
         <ColGroup>
             <col style="width: 50px;" />
@@ -52,7 +52,6 @@ else
 
 @code {
     private ObservableCollection<P4PlanLib.Model.Item>? dashboardItems { get; set; }
-    private ObservableCollection<P4PlanLib.Model.Item>? originalRankedList { get; set; }
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
 
@@ -76,12 +75,10 @@ else
             dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
 			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
-            originalRankedList = new ObservableCollection<P4PlanLib.Model.Item>();
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
 			foreach (var item in dashboardItems)
             {
                 item.Type = "Bug";
-                originalRankedList.Add(item);
                 rankedList.Add(item);
             }
 
@@ -89,7 +86,6 @@ else
 			{
 				item.Type = "Backlog";
 				dashboardItems.Add(item);
-                originalRankedList.Add(item);
 				rankedList.Add(item);
 			}
 

@@ -366,21 +366,6 @@
         });
     }
 
-
-    private Task<string?> GetCurrentUserName()
-    {
-        if (_lookupService is FilterToolbarLookupService concreteLookup)
-        {
-            var method = typeof(FilterToolbarLookupService).GetMethod("GetCurrentUserName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (method != null)
-            {
-                return Task.FromResult(method.Invoke(concreteLookup, null) as string);
-            }
-        }
-        return Task.FromResult<string?>(null);
-    }
-
-
     private async void Cancel()
     {
         Criteria.Reset();

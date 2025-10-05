@@ -20,12 +20,6 @@ public class FilterToolbarLookupService : IFilterToolbarLookupService
             .FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
     }
 
-    private string? GetCurrentUserName()
-    {
-        return _httpContextAccessor.HttpContext?.User?.Claims
-            .FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-    }
-
     public async Task<IEnumerable<string>> GetPrioritiesAsync()
     {
          var client = _p4PlanClientProvider.GetP4PlanClient(GetCurrentUserEmail());
