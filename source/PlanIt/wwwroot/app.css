@@ -49,3 +49,40 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.mud-toolbar-appbar {
+    background-color: #5C6BC0;
+    color: white;
+}
+
+.appbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-align: center;
+}
+
+.appbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;    
+}
+
+.white-outline-chip {
+    background-color: transparent !important; /* no fill */
+    color: white !important; /* text color */
+    border-color: white !important; /* outline color */
+    font-size: 12px; /* optional smaller font */
+}
+.chip-green {
+    background-color: #388E3C !important;
+    color: white !important;
+}
+.chip-blue {
+    background-color: #039BE5 !important;
+    color: white !important;
+}
+.mud-typography-caption{
+    font-weight:500 !important;
+}
