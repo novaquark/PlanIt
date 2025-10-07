@@ -581,20 +581,22 @@ public class P4PlanClient : IP4PlanClient
             .OrderBy(n => n)
             .ToList();
     }
-
-    public async Task<IEnumerable<string>> GetStatusesAsync()
+   
+    public async Task<IEnumerable<string>> GetAssigneesAsync(string? search)
     {
         var items = await Search("");
-        return items
-            .Select(i => i.Status)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s!)
-            .Distinct()
-            .OrderBy(s => s)
-            .ToList();
+        var names = items
+            .SelectMany(i => i.AssignedTo ?? Array.Empty<AssignedTo>())
+            .Select(a => a.User?.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            names = names.Where(n => n.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+        return names.OrderBy(n => n).Take(20).ToList();
     }
-
-
     #endregion
 }
 

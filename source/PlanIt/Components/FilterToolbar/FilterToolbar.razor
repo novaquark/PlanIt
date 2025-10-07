@@ -1,4 +1,5 @@
 @typeparam TModel
+@using P4PlanLib
 @using MudBlazor
 @using P4PlanLib.Model
 @using PlanIt.Components.FilterToolbar
@@ -8,12 +9,11 @@
     <MudGrid>
         <MudItem xs="12" sm="12" md="12" lg="12">
             <MudStack Row="true" Spacing="1">
-                <MudButton Variant="@((Criteria.OnlyMyTasks) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.OnlyMyTasks)))" StartIcon="@Icons.Material.Filled.Person">
-                    Only My Tasks
-                </MudButton>
-                <MudButton Variant="@((Criteria.TopPriority) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.TopPriority)))" StartIcon="@Icons.Material.Filled.PriorityHigh">
-                    Top Priority
-                </MudButton>
+            <MudButton Variant="@((Criteria.Unfinished) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.Unfinished)))" StartIcon="@Icons.Material.Filled.NotStarted">Unfinished</MudButton>
+                <MudButton Variant="@((Criteria.OnlyMyTasks) ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(()=>Toggle(nameof(Criteria.OnlyMyTasks)))" StartIcon="@Icons.Material.Filled.Person">Only My Tasks</MudButton>
+                <MudButton Variant="@((Criteria.PriorityVeryHigh) ? Variant.Filled : Variant.Outlined)" Color="Color.Secondary" OnClick="@(()=>Toggle(nameof(Criteria.PriorityVeryHigh)))" StartIcon="@Icons.Material.Filled.PriorityHigh">Very High</MudButton>
+                <MudButton Variant="@((Criteria.PriorityHigh) ? Variant.Filled : Variant.Outlined)" Color="Color.Warning" OnClick="@(()=>Toggle(nameof(Criteria.PriorityHigh)))" StartIcon="@Icons.Material.Filled.PriorityHigh">High</MudButton>
+                <MudButton Variant="@((Criteria.PriorityOther) ? Variant.Filled : Variant.Outlined)" Color="Color.Info" OnClick="@(()=>Toggle(nameof(Criteria.PriorityOther)))" StartIcon="@Icons.Material.Filled.LowPriority">Other</MudButton>
             </MudStack>
         </MudItem>
 
@@ -21,7 +21,7 @@
             <MudSelect T="string" Label="Priority" Value="Criteria.Priority" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Priority), v))" Dense="true" Clearable="true" Searchable="true">
                 @if (Priorities != null)
                 {
-                    @foreach(var p in Priorities) { <MudSelectItem Value="@p">@BeautifyPriority(p)</MudSelectItem> }
+                    @foreach(var p in Priorities) { <MudSelectItem Value="@p">@((new Item { Priority = p }).BeautifulPriority)</MudSelectItem> }
                 }
             </MudSelect>
         </MudItem>
@@ -35,17 +35,9 @@
             </MudSelect>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="string" Label="Status" Value="Criteria.Status" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Status), v))" Dense="true" Clearable="true" Searchable="true">
-                @if (Statuses != null)
-                {
-                    @foreach(var p in Statuses) { <MudSelectItem Value="@p">@p</MudSelectItem> }
-                }
-            </MudSelect>
-        </MudItem>
 
         <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string" Label="Assigneed To" Value="Criteria.Assignee" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Assignee), v))" Dense="true" Immediate="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" />
+            <MudAutocomplete T="string" Label="Assigned To" Value="Criteria.Assignee" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Assignee), v))" Dense="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" SearchFunc="SearchAssignees" Clearable="true" />
         </MudItem>
 
          <MudItem xs="12" sm="6" md="3">
@@ -59,9 +51,6 @@
                     <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Clear" OnClick="@Cancel">Reset</MudButton>
                     <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Share" OnClick="@ShareFilters">Share</MudButton>
                 </div>
-                <div>
-                    <MudText Typo="Typo.body2">JQL: @JqlPreview</MudText>
-                </div>
             </MudStack>
         </MudItem>
     </MudGrid>
@@ -70,31 +59,21 @@
 @code {
     [Parameter] public IEnumerable<TModel> TargetItems { get; set; } = new List<TModel>();
     [Parameter] public EventCallback<FilterResult<TModel>> OnApplyFilter { get; set; }
-    [Inject] private IFilterToolbarLookupService _lookupService { get; set; } = null!;
+    [Inject] private IP4PlanClientProvider P4PlanClientProvider { get; set; } = null!;
+    [Inject] private IHttpContextAccessor HttpContextAccessor { get; set; } = null!;
     [Inject] private NavigationManager Navigation { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     private FilterCriteria Criteria { get; set; } = new();
-    protected string JqlPreview { get; set; } = string.Empty;
+
     private List<TModel> _originalItems = new();
 
-    IEnumerable<string>? Priorities, Sprints, Statuses;
+    IEnumerable<string>? Priorities, Sprints;
+    private IP4PlanClient? _client;
 
     private bool _filtersLoadedFromQuery = false;
     private bool _applyFromQueryPending = false;
 
-    private static string BeautifyPriority(string? code)
-    {
-        return code?.ToLowerInvariant() switch
-        {
-            "verylow" => "6 - Very Low",
-            "low" => "5 - Low",
-            "medium" => "3 - Medium",
-            "high" => "2 - High",
-            "veryhigh" => "1 - Very High",
-            _ => "4 - No prio"
-        };
-    }
 
     protected override void OnParametersSet()
     {
@@ -115,14 +94,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (_lookupService != null)
+        var email = GetCurrentUserEmail();
+        _client = P4PlanClientProvider.GetP4PlanClient(email);
+        if (_client != null)
         {
-            Priorities = await SafeCall(() => _lookupService.GetPrioritiesAsync());
-            Sprints = await SafeCall(() => _lookupService.GetSprintsAsync());
-            Statuses = await SafeCall(() => _lookupService.GetStatusesAsync());
+            Priorities = await SafeCall(() => _client.GetPrioritiesAsync());
+            Sprints = await SafeCall(() => _client.GetSprintsAsync());
         }
         await LoadFiltersFromQuery();
-        BuildJqlPreview();
     }
 
     private async Task LoadFiltersFromQuery()
@@ -135,11 +114,13 @@
 
             if (q.TryGetValue("prio", out var prio)) { Criteria.Priority = prio.ToString(); any = true; }
             if (q.TryGetValue("sprint", out var sprint)) { Criteria.Sprint = sprint.ToString(); any = true; }
-            if (q.TryGetValue("status", out var status)) { Criteria.Status = status.ToString(); any = true; }
             if (q.TryGetValue("assignee", out var assignee)) { Criteria.Assignee = assignee.ToString(); any = true; }
             if (q.TryGetValue("committed", out var committed)) { Criteria.Committed = committed.ToString(); any = true; }
             if (q.TryGetValue("onlyMine", out var onlyMine)) { Criteria.OnlyMyTasks = onlyMine.ToString() == "1"; any = true; }
-            if (q.TryGetValue("topPri", out var topPri)) { Criteria.TopPriority = topPri.ToString() == "1"; any = true; }
+            if (q.TryGetValue("unfinished", out var unfinished)) { Criteria.Unfinished = unfinished.ToString() == "1"; any = true; }
+            if (q.TryGetValue("vh", out var vh)) { Criteria.PriorityVeryHigh = vh.ToString() == "1"; any = true; }
+            if (q.TryGetValue("h", out var h)) { Criteria.PriorityHigh = h.ToString() == "1"; any = true; }
+            if (q.TryGetValue("o", out var o)) { Criteria.PriorityOther = o.ToString() == "1"; any = true; }
 
             _filtersLoadedFromQuery = any;
             if (any)
@@ -159,11 +140,13 @@
         var dict = new Dictionary<string, string?>();
         if (!string.IsNullOrWhiteSpace(Criteria.Priority)) dict["prio"] = Criteria.Priority!;
         if (!string.IsNullOrWhiteSpace(Criteria.Sprint)) dict["sprint"] = Criteria.Sprint!;
-        if (!string.IsNullOrWhiteSpace(Criteria.Status)) dict["status"] = Criteria.Status!;
         if (!string.IsNullOrWhiteSpace(Criteria.Assignee)) dict["assignee"] = Criteria.Assignee!;
         if (!string.IsNullOrWhiteSpace(Criteria.Committed)) dict["committed"] = Criteria.Committed!;
         if (Criteria.OnlyMyTasks) dict["onlyMine"] = "1";
-        if (Criteria.TopPriority) dict["topPri"] = "1";
+        if (Criteria.Unfinished) dict["unfinished"] = "1";
+        if (Criteria.PriorityVeryHigh) dict["vh"] = "1";
+        if (Criteria.PriorityHigh) dict["h"] = "1";
+        if (Criteria.PriorityOther) dict["o"] = "1";
         return QueryHelpers.AddQueryString(baseUri, dict);
     }
 
@@ -172,6 +155,24 @@
         var url = BuildShareUrl();
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
         Snackbar.Add("Shareable link copied to clipboard", Severity.Success);
+    }
+
+    private string? GetCurrentUserEmail()
+    {
+        return HttpContextAccessor?.HttpContext?.User?.FindFirst("emails")?.Value
+               ?? HttpContextAccessor?.HttpContext?.User?.Identity?.Name;
+    }
+
+    private string? GetCurrentUserDisplayName()
+    {
+        return HttpContextAccessor?.HttpContext?.User?.Identity?.Name
+               ?? GetCurrentUserEmail();
+    }
+
+    private Task<IEnumerable<string>> SearchAssignees(string value, CancellationToken _)
+    {
+        if (_client == null) return Task.FromResult<IEnumerable<string>>(Array.Empty<string>());
+        return _client.GetAssigneesAsync(value);
     }
 
     private async Task<IEnumerable<string>> SafeCall(Func<Task<IEnumerable<string>>> fn)
@@ -191,9 +192,11 @@
         switch (propName)
         {
             case nameof(Criteria.OnlyMyTasks): Criteria.OnlyMyTasks = !Criteria.OnlyMyTasks; break;
-            case nameof(Criteria.TopPriority): Criteria.TopPriority = !Criteria.TopPriority; break;
+            case nameof(Criteria.Unfinished): Criteria.Unfinished = !Criteria.Unfinished; break;
+            case nameof(Criteria.PriorityVeryHigh): Criteria.PriorityVeryHigh = !Criteria.PriorityVeryHigh; break;
+            case nameof(Criteria.PriorityHigh): Criteria.PriorityHigh = !Criteria.PriorityHigh; break;
+            case nameof(Criteria.PriorityOther): Criteria.PriorityOther = !Criteria.PriorityOther; break;
         }
-        BuildJqlPreview();
         _ = ApplyFilters();
     }
 
@@ -204,9 +207,7 @@
         {
             case nameof(Criteria.Priority): Criteria.Priority = value; break;
             case nameof(Criteria.Sprint): Criteria.Sprint = value; break;
-            case nameof(Criteria.Status): Criteria.Status = value; break;
         }
-        BuildJqlPreview();
         _ = ApplyFilters();
     }
 
@@ -217,7 +218,6 @@
             case nameof(Criteria.Assignee): Criteria.Assignee = value; break;
             case nameof(Criteria.Committed): Criteria.Committed = value; break;
         }
-        BuildJqlPreview();
         _ = ApplyFilters();
     }
 
@@ -228,8 +228,8 @@
         var filtered = source.ToList();
 
         // Current user info for OnlyMyTasks
-        var currentEmail = await _lookupService.GetCurrentUserEmailAsync();
-        var currentName = await _lookupService.GetCurrentUserDisplayNameAsync();
+        var currentEmail = GetCurrentUserEmail();
+        var currentName = GetCurrentUserDisplayName();
 
         // Only my tasks
         if (Criteria.OnlyMyTasks)
@@ -248,19 +248,22 @@
             }).ToList();
         }
 
-        // Top priority (veryHigh)
-
-        if (Criteria.TopPriority)
+        // Priority toggle filters
+        if (Criteria.PriorityVeryHigh || Criteria.PriorityHigh || Criteria.PriorityOther)
         {
             filtered = filtered.Where(item =>
             {
-                if (item is Item it)
-                {
-                    return string.Equals(it.Priority, "veryHigh", StringComparison.OrdinalIgnoreCase);
-                }
-                var prop = item?.GetType().GetProperty("Priority");
-                var val = prop?.GetValue(item)?.ToString();
-                return string.Equals(val, "veryHigh", StringComparison.OrdinalIgnoreCase);
+                string? pr = null;
+                if (item is Item it) pr = it.Priority;
+                else pr = item?.GetType().GetProperty("Priority")?.GetValue(item)?.ToString();
+
+                var isVH = string.Equals(pr, "veryHigh", StringComparison.OrdinalIgnoreCase);
+                var isH = string.Equals(pr, "high", StringComparison.OrdinalIgnoreCase);
+                var isOther = !isVH && !isH;
+
+                return (Criteria.PriorityVeryHigh && isVH)
+                    || (Criteria.PriorityHigh && isH)
+                    || (Criteria.PriorityOther && isOther);
             }).ToList();
         }
 
@@ -295,35 +298,21 @@
             }).ToList();
         }
 
-        // Default exclusion: hide Completed/Done unless an explicit Status is selected
-        if (string.IsNullOrWhiteSpace(Criteria.Status))
+        // Unfinished filter
+        if (Criteria.Unfinished)
         {
             filtered = filtered.Where(item =>
             {
                 if (item is Item it)
                 {
-                    return !EqualsStatus(it.Status, "Completed") && !EqualsStatus(it.Status, "Done") && !EqualsStatus(it.Status, "Complete");
+                    return !EqualsStatus(it.Status, "Done");
                 }
                 var prop = item?.GetType().GetProperty("Status");
                 var val = prop?.GetValue(item)?.ToString();
-                return !EqualsStatus(val, "Completed") && !EqualsStatus(val, "Done") && !EqualsStatus(val, "Complete");
+                return !EqualsStatus(val, "Done");
             }).ToList();
         }
 
-        // Status equals selected
-        if (!string.IsNullOrWhiteSpace(Criteria.Status))
-        {
-            filtered = filtered.Where(item =>
-            {
-                if (item is Item it)
-                {
-                    return string.Equals(it.Status, Criteria.Status, StringComparison.OrdinalIgnoreCase);
-                }
-                var prop = item?.GetType().GetProperty("Status");
-                var val = prop?.GetValue(item)?.ToString();
-                return string.Equals(val, Criteria.Status, StringComparison.OrdinalIgnoreCase);
-            }).ToList();
-        }
 
         static bool EqualsStatus(string? a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
@@ -350,12 +339,12 @@
             {
                 if (item is Item it)
                 {
-                    return (it.CommittedTo?.Name ?? string.Empty).Contains(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
+                    return (it.CommittedTo?.Name ?? string.Empty).StartsWith(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
                 }
                 var prop = item?.GetType().GetProperty("CommittedTo");
                 var nameProp = prop?.GetValue(item)?.GetType().GetProperty("Name");
                 var val = nameProp?.GetValue(prop?.GetValue(item))?.ToString() ?? string.Empty;
-                return val.Contains(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
+                return val.StartsWith(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
             }).ToList();
         }
 
@@ -369,7 +358,6 @@
     private async void Cancel()
     {
         Criteria.Reset();
-        BuildJqlPreview();
         // Reset to unfiltered data in parent
         await OnApplyFilter.InvokeAsync(new FilterResult<TModel>
         {
@@ -378,19 +366,4 @@
         });
     }
 
-    private void BuildJqlPreview()
-    {
-        var parts = new List<string>();
-        if (Criteria.OnlyMyTasks) parts.Add("assignee = currentUser()");
-        if (Criteria.TopPriority) parts.Add("priority = \"veryHigh\"");
-        if (!string.IsNullOrWhiteSpace(Criteria.Priority)) parts.Add($"priority = \"{Criteria.Priority}\"");
-        if (!string.IsNullOrWhiteSpace(Criteria.Sprint)) parts.Add($"committedTo = \"{Criteria.Sprint}\"");
-        if (!string.IsNullOrWhiteSpace(Criteria.Status)) parts.Add($"status = \"{Criteria.Status}\""); else parts.Add("status != \"Done\" AND status != \"Completed\"");
-        if (!string.IsNullOrWhiteSpace(Criteria.Assignee)) parts.Add($"assignee ~ \"{Criteria.Assignee}\"");
-        if (!string.IsNullOrWhiteSpace(Criteria.Committed)) parts.Add($"committedTo ~ \"{Criteria.Committed}\"");
-
-
-
-        JqlPreview = parts.Count == 0 ? "No filter" : string.Join(" AND ", parts);
-    }
 }

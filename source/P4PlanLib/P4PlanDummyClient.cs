@@ -695,19 +695,6 @@ namespace P4PlanLib
             return Task.FromResult<IEnumerable<string>>(sprints);
         }
 
-        public Task<IEnumerable<string>> GetStatusesAsync()
-        {
-            var statuses = _items.Values
-                .Select(i => i.Status)
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s!)
-                .Distinct()
-                .OrderBy(s => s)
-                .ToList();
-            return Task.FromResult<IEnumerable<string>>(statuses);
-        }
-
-
         private List<Item> FilterByItemType(List<Item> items, string query)
         {
             if (query.Contains("Item type=bug") || query.Contains("Item type=\"bug\"") || query.Contains("\"Item type\"=bug"))
@@ -783,7 +770,7 @@ namespace P4PlanLib
             if (query.Contains("Release tag"))
             {
                 // Milestone items - return items that are not done
-                return items.Where(i => i.Status != "Done").ToList();
+                return items;
             }
 
             return items; // No release tag filter applied
@@ -810,5 +797,21 @@ namespace P4PlanLib
                 item.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 item.Id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
         }
+
+        public Task<IEnumerable<string>> GetAssigneesAsync(string? search)
+        {
+            var names = _items.Values
+                .SelectMany(i => i.AssignedTo ?? Array.Empty<AssignedTo>())
+                .Select(a => a.User?.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!)
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                names = names.Where(n => n.Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+            return Task.FromResult<IEnumerable<string>>(names.OrderBy(n => n).Take(20).ToList());
+        }
+
     }
 }

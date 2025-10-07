@@ -85,13 +85,13 @@ else
 
             var comparer = new P4PlanLib.ItemComparer();
 
-            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
             myOpenBugs.ForEach(t => t.Type = "Bug");
-            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
             myOpenShowstoppers.ForEach(t => t.Type = "Showstopper");
-            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
+            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
             mySprintItems.ForEach(t => t.Type = "Sprint");
-            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assign tag\":\"{displayName}\"");
+            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assign tag\":\"{displayName}\"");
             myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();
             myBacklog.ForEach(t => t.Type = "Backlog");
 
