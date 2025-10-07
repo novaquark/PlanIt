@@ -1,5 +1,8 @@
-﻿@inherits LayoutComponentBase
-
+﻿@using System.Security.Claims
+@inherits LayoutComponentBase
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+@inject IWorkSummaryService WorkSummaryService
 @* Required *@
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -11,9 +14,64 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <!--<TopBarComponent />-->
+    <MudAppBar Elevation="1">
+        <div class="appbar-left d-flex align-center">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="@((e) => DrawerToggle())" />
+
+            <MudText Typo="Typo.body2" Class="ml-2">
+                @if (!string.IsNullOrEmpty(LoggedInUser))
+                {
+                    <p>Connected as @LoggedInUser</p>
+                }
+            </MudText>
+        </div>
+        <div class="appbar-center">
+            <MudText Typo="Typo.body2" Class="d-flex align-center flex-wrap gap-1">
+                @if (WorkSummaryService.MajorBugs == 0
+                                && WorkSummaryService.MinorBugs == 0
+                                && WorkSummaryService.TasksInSprint == 0
+                                && WorkSummaryService.TasksInBacklog == 0)
+                {
+                    <p>You have no work items assigned</p>
+                }
+                else
+                {
+                    <p>I have</p>
+
+                    if (WorkSummaryService.MajorBugs > 0)
+                    {
+                        <MudChip T="string" Color="Color.Error"> <MudText Typo="Typo.caption">@WorkSummaryService.MajorBugs major bugs</MudText></MudChip>
+                    }
+                    if (WorkSummaryService.MinorBugs > 0)
+                    {
+                        <MudChip T="string" Color="Color.Warning"><MudText Typo="Typo.caption">@WorkSummaryService.MinorBugs bugs</MudText></MudChip>
+                    }
+                    @if (WorkSummaryService.TasksInSprint > 0)
+                    {
+                        <MudChip T="string" Class="chip-green">
+                            <MudText Typo="Typo.caption">@WorkSummaryService.TasksInSprint tasks in sprint</MudText>
+                        </MudChip>
+                    }
+                    @if (WorkSummaryService.TasksInBacklog > 0)
+                    {
+                        <MudChip T="string" Class="chip-blue">
+                            <MudText Typo="Typo.caption">@WorkSummaryService.TasksInBacklog tasks in backlog</MudText>
+                        </MudChip>
+                    }
+                    <p>assigned to me</p>
+                }
+            </MudText>
+        </div>
+        <div class="appbar-right d-flex align-center">
+            <MudChip T="string" Variant="Variant.Outlined" Class="white-outline-chip">
+                @WorkSummaryService.DaysLeft days left in sprint <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="GoToSprint">
+                    (go to)
+                </MudButton>
+            </MudChip>
+        </div>
     </MudAppBar>
     <MudDrawer @bind-Open="@_drawerOpen">
         <NavMenu />
@@ -28,9 +86,23 @@
 
 @code {
     bool _drawerOpen = true;
-
+    string? LoggedInUser;
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            LoggedInUser = displayName;
+            await WorkSummaryService.RefreshAsync(displayName, email);
+        }
+    }
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+    void GoToSprint()
+    {
+        // navigate to sprint page
     }
 }

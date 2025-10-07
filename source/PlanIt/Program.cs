@@ -85,6 +85,7 @@ builder.Services.AddSingleton<IProjectDetailsService>(serviceProvider =>
 
 builder.Services.AddScoped<PlanIt.Components.FilterToolbar.IFilterToolbarLookupService, PlanIt.Components.FilterToolbar.FilterToolbarLookupService>();
 
+builder.Services.AddScoped<IWorkSummaryService, WorkSummaryService>();
 var app = builder.Build();
 app.UseSession();
 app.UseResponseCompression();
