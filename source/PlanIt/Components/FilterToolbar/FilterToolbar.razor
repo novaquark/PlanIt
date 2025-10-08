@@ -17,14 +17,15 @@
             </MudStack>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="3">
+        @* This will be add back later if required  
+         <MudItem xs="12" sm="6" md="3">
             <MudSelect T="string" Label="Priority" Value="Criteria.Priority" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Priority), v))" Dense="true" Clearable="true" Searchable="true">
                 @if (Priorities != null)
                 {
                     @foreach(var p in Priorities) { <MudSelectItem Value="@p">@((new Item { Priority = p }).BeautifulPriority)</MudSelectItem> }
                 }
             </MudSelect>
-        </MudItem>
+        </MudItem> *@
 
         <MudItem xs="12" sm="6" md="3">
             <MudSelect T="string" Label="Sprint" Value="Criteria.Sprint" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Sprint), v))" Dense="true" Clearable="true" Searchable="true">
@@ -35,13 +36,8 @@
             </MudSelect>
         </MudItem>
 
-
         <MudItem xs="12" sm="6" md="3">
             <MudAutocomplete T="string" Label="Assigned To" Value="Criteria.Assignee" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Assignee), v))" Dense="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" SearchFunc="SearchAssignees" Clearable="true" />
-        </MudItem>
-
-         <MudItem xs="12" sm="6" md="3">
-            <MudTextField T="string" Label="Committed To" Value="Criteria.Committed" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Committed), v))" Dense="true" Immediate="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.TaskAlt" />
         </MudItem>
 
         <MudItem xs="12">
@@ -112,10 +108,8 @@
             var q = QueryHelpers.ParseQuery(uri.Query);
             bool any = false;
 
-            if (q.TryGetValue("prio", out var prio)) { Criteria.Priority = prio.ToString(); any = true; }
             if (q.TryGetValue("sprint", out var sprint)) { Criteria.Sprint = sprint.ToString(); any = true; }
             if (q.TryGetValue("assignee", out var assignee)) { Criteria.Assignee = assignee.ToString(); any = true; }
-            if (q.TryGetValue("committed", out var committed)) { Criteria.Committed = committed.ToString(); any = true; }
             if (q.TryGetValue("onlyMine", out var onlyMine)) { Criteria.OnlyMyTasks = onlyMine.ToString() == "1"; any = true; }
             if (q.TryGetValue("unfinished", out var unfinished)) { Criteria.Unfinished = unfinished.ToString() == "1"; any = true; }
             if (q.TryGetValue("vh", out var vh)) { Criteria.PriorityVeryHigh = vh.ToString() == "1"; any = true; }
@@ -138,10 +132,8 @@
     {
         var baseUri = Navigation.ToAbsoluteUri(Navigation.Uri).GetLeftPart(UriPartial.Path);
         var dict = new Dictionary<string, string?>();
-        if (!string.IsNullOrWhiteSpace(Criteria.Priority)) dict["prio"] = Criteria.Priority!;
         if (!string.IsNullOrWhiteSpace(Criteria.Sprint)) dict["sprint"] = Criteria.Sprint!;
         if (!string.IsNullOrWhiteSpace(Criteria.Assignee)) dict["assignee"] = Criteria.Assignee!;
-        if (!string.IsNullOrWhiteSpace(Criteria.Committed)) dict["committed"] = Criteria.Committed!;
         if (Criteria.OnlyMyTasks) dict["onlyMine"] = "1";
         if (Criteria.Unfinished) dict["unfinished"] = "1";
         if (Criteria.PriorityVeryHigh) dict["vh"] = "1";
@@ -205,7 +197,6 @@
     {
         switch (propName)
         {
-            case nameof(Criteria.Priority): Criteria.Priority = value; break;
             case nameof(Criteria.Sprint): Criteria.Sprint = value; break;
         }
         _ = ApplyFilters();
@@ -216,7 +207,6 @@
         switch (propName)
         {
             case nameof(Criteria.Assignee): Criteria.Assignee = value; break;
-            case nameof(Criteria.Committed): Criteria.Committed = value; break;
         }
         _ = ApplyFilters();
     }
@@ -267,22 +257,7 @@
             }).ToList();
         }
 
-        // Priority equals selected
-        if (!string.IsNullOrWhiteSpace(Criteria.Priority))
-        {
-            filtered = filtered.Where(item =>
-            {
-                if (item is Item it)
-                {
-                    return string.Equals(it.Priority, Criteria.Priority, StringComparison.OrdinalIgnoreCase);
-                }
-                var prop = item?.GetType().GetProperty("Priority");
-                var val = prop?.GetValue(item)?.ToString();
-                return string.Equals(val, Criteria.Priority, StringComparison.OrdinalIgnoreCase);
-            }).ToList();
-        }
-
-        // Sprint equals selected (CommittedTo.Name)
+        // Sprint filter
         if (!string.IsNullOrWhiteSpace(Criteria.Sprint))
         {
             filtered = filtered.Where(item =>
@@ -329,22 +304,6 @@
                 var prop = item?.GetType().GetProperty("AssignedTo");
                 var val = prop?.GetValue(item)?.ToString();
                 return !string.IsNullOrEmpty(val) && val.Contains(Criteria.Assignee!, StringComparison.OrdinalIgnoreCase);
-            }).ToList();
-        }
-
-        // Committed sprint text contains
-        if (!string.IsNullOrWhiteSpace(Criteria.Committed))
-        {
-            filtered = filtered.Where(item =>
-            {
-                if (item is Item it)
-                {
-                    return (it.CommittedTo?.Name ?? string.Empty).StartsWith(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
-                }
-                var prop = item?.GetType().GetProperty("CommittedTo");
-                var nameProp = prop?.GetValue(item)?.GetType().GetProperty("Name");
-                var val = nameProp?.GetValue(prop?.GetValue(item))?.ToString() ?? string.Empty;
-                return val.StartsWith(Criteria.Committed!, StringComparison.OrdinalIgnoreCase);
             }).ToList();
         }
 

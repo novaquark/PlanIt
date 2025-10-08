@@ -29,6 +29,7 @@ public class P4PlanClient : IP4PlanClient
     private readonly GraphQLHttpClient _client;
     private bool _connected = false;
     private string _connectedUsername = string.Empty;
+    private IEnumerable<string>? _sprintsCache;
 
     public async Task LoginAsync(string username, string password)
     {
@@ -570,32 +571,58 @@ public class P4PlanClient : IP4PlanClient
         return Task.FromResult<IEnumerable<string>>(priorities);
     }
 
+    // CODE QUALITY DEBT
     public async Task<IEnumerable<string>> GetSprintsAsync()
     {
-        var items = await Search("");
-        return items
-            .Select(i => i.CommittedTo?.Name)
+        if (_sprintsCache != null)
+            return _sprintsCache;
+
+        var query = @"query getAllSprints {
+                  sprints {
+                    id
+                    name
+                  }
+                }";
+        var request = new GraphQLRequest { Query = query };
+        var response = await RunAsync<List<Sprint>>(request, "sprints") ?? new List<Sprint>();
+
+        var sprints = response
+            .Select(s => s.Name)
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Select(n => n!)
             .Distinct()
             .OrderBy(n => n)
             .ToList();
+
+        _sprintsCache = sprints;
+        return sprints;
     }
-   
     public async Task<IEnumerable<string>> GetAssigneesAsync(string? search)
     {
-        var items = await Search("");
-        var names = items
-            .SelectMany(i => i.AssignedTo ?? Array.Empty<AssignedTo>())
-            .Select(a => a.User?.Name)
+    var query = @"query getAllUsers {
+                    users {
+                      id
+                      name
+                      email
+                      fullName
+                    }
+                  }";
+        var request = new GraphQLRequest { Query = query };
+        var users = await RunAsync<List<User>>(request, "users") ?? new List<User>();
+
+        var names = users
+            .Select(u => u.Name)
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Select(n => n!)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .AsEnumerable();
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             names = names.Where(n => n.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
-        return names.OrderBy(n => n).Take(20).ToList();
+        return names.Take(20).ToList();
     }
     #endregion
 }

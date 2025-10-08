@@ -9,11 +9,8 @@ public class FilterCriteria
     public bool PriorityVeryHigh { get; set; }
     public bool PriorityHigh { get; set; }
     public bool PriorityOther { get; set; }
-
-    public string? Priority { get; set; }
     public string? Sprint { get; set; }
     public string? Assignee { get; set; }
-    public string? Committed { get; set; }
 
     public void Reset()
     {
@@ -22,9 +19,7 @@ public class FilterCriteria
         PriorityVeryHigh = false;
         PriorityHigh = false;
         PriorityOther = false;
-        Priority = null;
         Sprint = null;
         Assignee = null;
-        Committed = null;
     }
 }
