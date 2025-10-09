@@ -623,7 +623,7 @@ public class P4PlanClient : IP4PlanClient
         {
             names = names.Where(n => n.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
-        return names.Take(20).ToList();
+        return names.ToList();
     }
   #endregion
 
