@@ -29,7 +29,15 @@ public class P4PlanClient : IP4PlanClient
     private readonly GraphQLHttpClient _client;
     private bool _connected = false;
     private string _connectedUsername = string.Empty;
-    
+    private IEnumerable<string>? _sprintsCache;
+
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+    private DateTime? _sprintsCachedAtUtc;
+    private DateTime? _assigneesCachedAtUtc;
+
+
+    private IEnumerable<string>? _assigneesCache;
+
     public async Task LoginAsync(string username, string password)
     {
         _token = string.Empty;
@@ -537,7 +545,7 @@ public class P4PlanClient : IP4PlanClient
         var response = await _client.SendMutationAsync<dynamic>(request);
         return response.Data != null && response.Data?.postComment != null && response.Data?.postComment.id != null;
     }
-    
+
     public async Task<List<Item>> GetItemChildrenAsync(string backlogEntryId, bool includeCompletedTasks = false)
     {
         var parentItem = await GetBacklogItem(backlogEntryId);
@@ -556,6 +564,72 @@ public class P4PlanClient : IP4PlanClient
         return children;
     }
 
-    #endregion
+    public Task<IEnumerable<string>> GetPrioritiesAsync()
+    {
+        // TODO: Implement actual GraphQL query to get priorities from P4Plan server
+        var priorities = new List<string>
+        {
+            "veryHigh",
+            "high",
+            "medium",
+            "low",
+            "veryLow"
+        };
+        return Task.FromResult<IEnumerable<string>>(priorities);
+    }
+
+    // CODE QUALITY DEBT
+    public async Task<IEnumerable<string>> GetSprintsAsync()
+    {
+        if (_sprintsCache != null && _sprintsCachedAtUtc.HasValue && DateTime.UtcNow - _sprintsCachedAtUtc.Value < CacheTtl)
+            return _sprintsCache;
+
+        var items = await Search("");
+        var sprints = items
+            .Select(i => i.CommittedTo?.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+
+        _sprintsCache = sprints;
+        _sprintsCachedAtUtc = DateTime.UtcNow;
+        return sprints;
+    }
+
+    // CODE QUALITY DEBT
+    public async Task<IEnumerable<string>> GetAssigneesAsync(string? search)
+    {
+        if (_assigneesCache == null || !_assigneesCachedAtUtc.HasValue || DateTime.UtcNow - _assigneesCachedAtUtc.Value >= CacheTtl)
+        {
+            var items = await Search("");
+            _assigneesCache = items
+                .SelectMany(i => i.AssignedTo ?? Array.Empty<AssignedTo>())
+                .Select(a => a.User?.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(n => n)
+                .ToList();
+            _assigneesCachedAtUtc = DateTime.UtcNow;
+        }
+
+        var names = _assigneesCache.AsEnumerable();
+
+
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            names = names.Where(n => n.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+        return names.ToList();
+    }
+  #endregion
+
+   // Invalidation helpers you can call to force refresh
+   public void InvalidateSprintsCache() { _sprintsCache = null; _sprintsCachedAtUtc = null; }
+    public void InvalidateAssigneesCache() { _assigneesCache = null; _assigneesCachedAtUtc = null; }
+
 }
 

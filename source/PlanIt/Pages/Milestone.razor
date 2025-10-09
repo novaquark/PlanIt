@@ -3,6 +3,7 @@
 @using System.Security.Claims
 @using System.Collections.ObjectModel
 @using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -23,6 +24,7 @@ else if (!loaded)
 }
 else
 {
+    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
     <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
         <ColGroup>
             <col style="width: 50px;" />
@@ -53,7 +55,6 @@ else
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
     private bool loaded { get; set; } = false;
 
-
     private P4PlanLib.IP4PlanClient? p4PlanClient;
 
     protected override async Task OnInitializedAsync()
@@ -71,8 +72,8 @@ else
 
             var comparer = new P4PlanLib.ItemComparer();
 
-            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
-			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and Status!=Complete and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
+            dashboardItems = new ObservableCollection<P4PlanLib.Model.Item>(await p4PlanClient.Search($"\"Item type\"=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\""));
+			var backlogTasks = await p4PlanClient.Search($"\"Item type\"!=\"bug\" and \"Release tag\":\"{ProjectDetailsService.NextMilestoneName}\"");
 
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
 			foreach (var item in dashboardItems)
@@ -129,5 +130,16 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
+    }
+    private void HandleFilterApplied(FilterResult<Item> result)
+    {
+        rankedList?.Clear();
+        if (result.FilteredItems != null)
+        {
+            foreach (var item in result.FilteredItems)
+            {
+                rankedList?.Add(item);
+            }
+        }
     }
 }

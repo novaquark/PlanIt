@@ -1,6 +1,8 @@
 ﻿@page "/todolist"
 @using GraphQL
 @using System.Security.Claims
+@using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
 @inject NavigationManager Navigation
@@ -21,6 +23,7 @@
 else
 {
     <MudText>Ordered by Showstoppers > Sprint tasks > Open bugs not in sprint > Backlog</MudText>
+    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
 
     <MudTable Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
         <ColGroup>
@@ -82,13 +85,13 @@ else
 
             var comparer = new P4PlanLib.ItemComparer();
 
-            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
             myOpenBugs.ForEach(t => t.Type = "Bug");
-            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Status!=Complete and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
+            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
             myOpenShowstoppers.ForEach(t => t.Type = "Showstopper");
-            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
+            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
             mySprintItems.ForEach(t => t.Type = "Sprint");
-            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and Status!=Complete and \"Assign tag\":\"{displayName}\"");
+            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assign tag\":\"{displayName}\"");
             myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();
             myBacklog.ForEach(t => t.Type = "Backlog");
 
@@ -133,5 +136,16 @@ else
             "Bug" => "background: #EEEE88;",
             _ => ""
         };
+    }
+    private void HandleFilterApplied(FilterResult<Item> result)
+    {
+        rankedList?.Clear();
+        if (result.FilteredItems != null)
+        {
+            foreach (var item in result.FilteredItems)
+            {
+                rankedList?.Add(item);
+            }
+        }
     }
 }
