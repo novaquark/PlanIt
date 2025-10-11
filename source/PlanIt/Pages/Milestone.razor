@@ -78,13 +78,11 @@ else
             rankedList = new ObservableCollection<P4PlanLib.Model.Item>();
 			foreach (var item in dashboardItems)
             {
-                item.Type = "Bug";
                 rankedList.Add(item);
             }
 
 			foreach (var item in backlogTasks)
 			{
-				item.Type = "Backlog";
 				dashboardItems.Add(item);
 				rankedList.Add(item);
 			}
