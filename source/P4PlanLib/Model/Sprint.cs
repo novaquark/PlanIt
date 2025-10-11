@@ -2,17 +2,25 @@ using Newtonsoft.Json;
 
 namespace P4PlanLib.Model;
 
-public class Sprint
+public class Sprint : Item
 {
-    [JsonProperty("id")]
-    public string Id { get; set; } = string.Empty;
-
-    [JsonProperty("name")]
-    public string Name { get; set; } = string.Empty;
 
     [JsonProperty("localId")]
     public string LocalId { get; set; } = string.Empty;
-    
-    [JsonProperty("itemLink")]
-    public string ItemLink { get; set; } = string.Empty;
+
+    public bool IsCurrentSprint()
+    {
+        var now = DateTime.Now;
+        return StartDate <= now && now <= EndDate;
+    }
+
+    public bool IsPastSprint()
+    {
+        return EndDate < DateTime.Now;
+    }
+
+    public bool IsFutureSprint()
+    {
+        return StartDate > DateTime.Now;
+    }
 }

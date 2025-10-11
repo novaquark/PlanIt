@@ -9,6 +9,6 @@
     public class ProjectDetailsService : IProjectDetailsService
     {
         public string NextMilestoneName { get; set; } = "None";
-        public string CurrentSprint { get; set; } = "S30";
+        public string CurrentSprint { get; set; } = "Sprint 2";
     }
 }

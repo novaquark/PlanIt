@@ -42,7 +42,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Rank">@context.Rank</MudTd>
-            <MudTd DataLabel="Type" Style=@($"{GetTypeBackgroundColor(context.Type)}")><MudTooltip Text="@context.Type"><Blazicon Svg="TaskTypeToIcon(context.Type)" /></MudTooltip></MudTd>
+            <MudTd DataLabel="Type" Style=@($"{GetTypeBackgroundColor(TypeString(context))}")><MudTooltip Text="@TypeString(context)"><Blazicon Svg="TaskTypeToIcon(TypeString(context))" /></MudTooltip></MudTd>
             <MudTd DataLabel="Name">
                 @if (string.IsNullOrEmpty(context.SubprojectPath))
                 {
@@ -86,14 +86,10 @@ else
             var comparer = new P4PlanLib.ItemComparer();
 
             myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
-            myOpenBugs.ForEach(t => t.Type = "Bug");
             myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
-            myOpenShowstoppers.ForEach(t => t.Type = "Showstopper");
             mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
-            mySprintItems.ForEach(t => t.Type = "Sprint");
             myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assign tag\":\"{displayName}\"");
             myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();
-            myBacklog.ForEach(t => t.Type = "Backlog");
 
             rankedList = new List<P4PlanLib.Model.Item>();
             rankedList.AddRange(myOpenShowstoppers);
@@ -148,4 +144,31 @@ else
             }
         }
     }
+
+    private string TypeString(Item i)
+    {
+        // First, infer by severity/name if it's clearly a showstopper or bug
+        if (string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase))
+            return "Showstopper";
+        if (!string.IsNullOrWhiteSpace(i.Name) && i.Name.Contains("Bug", StringComparison.OrdinalIgnoreCase))
+            return "Bug";
+
+        // Next, use commitment to decide Sprint vs Backlog
+        if (i.CommittedTo?.Name == ProjectDetailsService.CurrentSprint)
+            return "Sprint";
+
+        // Fallback to model enum
+        switch (i.Type)
+        {
+            case ItemType.Bug: return "Bug";
+            case ItemType.Showstopper: return "Showstopper";
+            case ItemType.Sprint: return "Sprint";
+            case ItemType.Backlog: return "Backlog";
+            case ItemType.Epic: return "Epic";
+            case ItemType.Story: return "Story";
+            case ItemType.Task: return "Task";
+            default: return i.Type.ToString();
+        }
+    }
+
 }
