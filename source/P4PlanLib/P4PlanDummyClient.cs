@@ -33,17 +33,18 @@ namespace P4PlanLib
                     Name = $"Epic {i}: {GetEpicName(i)}",
                     Description = GetEpicDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = "Epic",
+                    Type = ItemType.Epic,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
-                    CommittedTo = new Sprint { Name = GetRandomSprint(random) },
+                    CommittedTo = GetRandomSprint(random),
                     EstimatedDays = random.Next(20, 60),
                     WorkRemaining = random.Next(5, 40),
                     IndentationLevel = 0,
                     Rank = i,
                     Hyperlink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
-                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}"
+                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
+                    SubprojectPath = GetRandomTeam(random)
                 };
 
                 _items[id] = item;
@@ -62,17 +63,18 @@ namespace P4PlanLib
                     Name = $"Story {i}: {GetStoryName(i)}",
                     Description = GetStoryDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = "Story",
+                    Type = ItemType.Story,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
-                    CommittedTo = new Sprint { Name = GetRandomSprint(random) },
+                    CommittedTo = GetRandomSprint(random),
                     EstimatedDays = random.Next(3, 15),
                     WorkRemaining = random.Next(0, 12),
                     IndentationLevel = random.Next(0, 2),
                     Rank = 50 + i,
                     Hyperlink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
-                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}"
+                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
+                    SubprojectPath = GetRandomTeam(random)
                 };
 
                 _items[id] = item;
@@ -91,17 +93,18 @@ namespace P4PlanLib
                     Name = $"Task {i}: {GetTaskName(i)}",
                     Description = GetTaskDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = "Task",
+                    Type = ItemType.Task,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
-                    CommittedTo = new Sprint { Name = GetRandomSprint(random, 1) }, // Skip Backlog
+                    CommittedTo = GetRandomSprint(random, 1), // Skip Backlog
                     EstimatedDays = random.Next(1, 8),
                     WorkRemaining = random.Next(0, 6),
                     IndentationLevel = random.Next(1, 4),
                     Rank = 100 + i,
                     Hyperlink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
-                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}"
+                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
+                    SubprojectPath = GetRandomTeam(random)
                 };
 
                 _items[id] = item;
@@ -119,17 +122,18 @@ namespace P4PlanLib
                     Name = $"Bug {i}: {GetBugName(i)}",
                     Description = GetBugDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = "Bug",
+                    Type = ItemType.Bug,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
-                    CommittedTo = new Sprint { Name = GetRandomSprint(random) },
+                    CommittedTo = GetRandomSprint(random),
                     EstimatedDays = random.Next(1, 10),
                     WorkRemaining = random.Next(0, 8),
                     IndentationLevel = 0,
                     Rank = 200 + i,
                     Hyperlink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
-                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}"
+                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
+                    SubprojectPath = GetRandomTeam(random)
                 };
 
                 _items[id] = item;
@@ -147,17 +151,18 @@ namespace P4PlanLib
                     Name = $"Critical Bug {i}: {GetShowstopperName(i)}",
                     Description = GetShowstopperDescription(i),
                     Status = GetRandomStatus(random, 0, 3), // Only New, To Do, In Progress
-                    Type = "Bug",
+                    Type = ItemType.Showstopper,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = "veryHigh",
                     Severity = "Critical",
-                    CommittedTo = new Sprint { Name = GetRandomSprint(random, 1) }, // Skip Backlog
+                    CommittedTo = GetRandomSprint(random, 1), // Skip Backlog
                     EstimatedDays = random.Next(2, 8),
                     WorkRemaining = random.Next(1, 6),
                     IndentationLevel = 0,
                     Rank = 300 + i,
                     Hyperlink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
-                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}"
+                    ItemLink = $"https://novaquark.hansoft.cloud/task/3767a0ec/{id}",
+                    SubprojectPath = GetRandomTeam(random)
                 };
 
                 _items[id] = item;
@@ -178,14 +183,15 @@ namespace P4PlanLib
                     Name = $"Story {i} for {epic.Name}",
                     Description = $"Implementation story for {epic.Name}",
                     Status = GetRandomStatus(random),
-                    Type = "Story",
+                    Type = ItemType.Story,
                     AssignedTo = [new AssignedTo { User = new User() { Name = GetRandomDeveloper(random) } }],
                     CommittedTo = epic.CommittedTo,
                     Priority = GetRandomPriority(random),
                     EstimatedDays = random.Next(5, 20),
                     WorkRemaining = random.Next(0, 15),
                     IndentationLevel = 1,
-                    Rank = i
+                    Rank = i,
+                    SubprojectPath = epic.SubprojectPath
                 };
 
                 children.Add(child);
@@ -210,14 +216,15 @@ namespace P4PlanLib
                     Name = $"Task {i} for {story.Name}",
                     Description = $"Implementation task for {story.Name}",
                     Status = GetRandomStatus(random),
-                    Type = "Task",
+                    Type = ItemType.Task,
                     AssignedTo = [new AssignedTo { User = new User() { Name = GetRandomDeveloper(random) } }],
                     CommittedTo = story.CommittedTo,
                     Priority = GetRandomPriority(random),
                     EstimatedDays = random.Next(1, 5),
                     WorkRemaining = random.Next(0, 3),
                     IndentationLevel = story.IndentationLevel + 1,
-                    Rank = i
+                    Rank = i,
+                    SubprojectPath = story.SubprojectPath
                 };
 
                 children.Add(child);
@@ -268,10 +275,48 @@ namespace P4PlanLib
             return severities[random.Next(severities.Length)];
         }
 
-        private string GetRandomSprint(Random random, int startIndex = 0)
+        private Sprint GetRandomSprint(Random random, int startIndex = 0)
         {
-            var sprints = new[] { "Backlog", "Sprint 1", "Sprint 2", "Sprint 3", "Sprint 4", "Sprint 5", "Sprint 6" };
-            return sprints[random.Next(startIndex, sprints.Length)];
+            var sprintNames = new[] { "Backlog", "Sprint 1", "Sprint 2", "Sprint 3", "Sprint 4", "Sprint 5", "Sprint 6" };
+            var sprintName = sprintNames[random.Next(startIndex, sprintNames.Length)];
+
+            return new Sprint
+            {
+                Name = sprintName,
+                Id = $"SPRINT-{sprintName.Replace(" ", "")}",
+                StartDate = GetSprintStartDate(sprintName),
+                EndDate = GetSprintEndDate(sprintName)
+            };
+        }
+
+        private DateTime? GetSprintStartDate(string sprintName)
+        {
+            return sprintName switch
+            {
+                "Backlog" => null,
+                "Sprint 1" => new DateTime(2024, 10, 15), // Current sprint
+                "Sprint 2" => new DateTime(2024, 11, 1),  // Future sprint
+                "Sprint 3" => new DateTime(2024, 11, 15), // Future sprint
+                "Sprint 4" => new DateTime(2024, 12, 1),  // Future sprint
+                "Sprint 5" => new DateTime(2024, 12, 15), // Future sprint
+                "Sprint 6" => new DateTime(2025, 1, 1),   // Future sprint
+                _ => null
+            };
+        }
+
+        private DateTime? GetSprintEndDate(string sprintName)
+        {
+            return sprintName switch
+            {
+                "Backlog" => null,
+                "Sprint 1" => new DateTime(2024, 10, 31), // Current sprint
+                "Sprint 2" => new DateTime(2024, 11, 14), // Future sprint
+                "Sprint 3" => new DateTime(2024, 11, 30), // Future sprint
+                "Sprint 4" => new DateTime(2024, 12, 14), // Future sprint
+                "Sprint 5" => new DateTime(2024, 12, 31), // Future sprint
+                "Sprint 6" => new DateTime(2025, 1, 15),  // Future sprint
+                _ => null
+            };
         }
 
         private string GetRandomDeveloper(Random random)
@@ -282,6 +327,15 @@ namespace P4PlanLib
                 "grace@example.com", "henry@example.com", "iris@example.com"
             };
             return developers[random.Next(developers.Length)];
+        }
+
+        private string GetRandomTeam(Random random)
+        {
+            var teams = new[] {
+                "S32 Tools", "S32 Design", "Core Platform", "Mobile Team",
+                "Infrastructure", "Security Team", "Data Analytics", "QA Team"
+            };
+            return teams[random.Next(teams.Length)];
         }
 
         // Data generation methods
@@ -577,7 +631,7 @@ namespace P4PlanLib
 
         public Task<Item?> GetBug(string id)
         {
-            var bug = _items.Values.FirstOrDefault(i => i.Id == id && i.Type == "Bug");
+            var bug = _items.Values.FirstOrDefault(i => i.Id == id && i.Type == P4PlanLib.Model.ItemType.Bug);
             return Task.FromResult(bug);
         }
 
@@ -699,11 +753,11 @@ namespace P4PlanLib
         {
             if (query.Contains("Item type=bug") || query.Contains("Item type=\"bug\"") || query.Contains("\"Item type\"=bug"))
             {
-                return items.Where(i => i.Type == "Bug").ToList();
+                return items.Where(i => i.Type == P4PlanLib.Model.ItemType.Bug).ToList();
             }
             else if (query.Contains("Item type=\"backlog item\"") || query.Contains("Item type!=\"bug\"") || query.Contains("\"Item type\"=\"backlog item\""))
             {
-                return items.Where(i => i.Type == "Epic" || i.Type == "Story" || i.Type == "Task").ToList();
+                return items.Where(i => i.Type == P4PlanLib.Model.ItemType.Backlog).ToList();
             }
 
             return items; // No type filter applied
