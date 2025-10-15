@@ -1,203 +1,111 @@
 @using P4PlanLib.Model
+<MudStack Spacing="2" Style="min-width:300px;">
 
-<div style="min-width: 300px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 1rem;">
-    
-    <!-- Comments header -->
-    <h3 style="margin: 0; 
-               color: #1a1a1a; 
-               font-weight: 600; 
-               font-size: 1.25rem;">
+    <!-- Header -->
+    <MudText Typo="Typo.h6" FontWeight="FontWeight.SemiBold">
         Comments (@Comments.Count)
-    </h3>
+    </MudText>
 
-    <!-- Comments display area -->
-    <div style="border-radius: 12px; 
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-                border: 1px solid #e5e7eb; 
-                background: #fff; 
-                flex: 1; 
-                min-height: 300px; 
-                max-height: 400px; 
-                overflow: hidden; 
-                display: flex; 
-                flex-direction: column;">
-        
-        <div style="padding: 1.5rem; 
-                    overflow-y: auto; 
-                    flex: 1;
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;">
-            @if (Comments.Count == 0)
-            {
-                <div style="text-align: center; 
-                            padding: 2rem; 
-                            color: #9ca3af;
-                            display: flex; 
-                            flex-direction: column; 
-                            align-items: center; 
-                            gap: 0.5rem;">
-                    <div style="font-size: 2rem;">💬</div>
-                    <p style="margin: 0; font-size: 0.875rem;">No comments yet. Be the first to comment!</p>
-                </div>
-            }
-            else
-            {
-                <div style="display: flex; 
-                            flex-direction: column; 
-                            gap: 1.25rem;">
-                    @foreach (var comment in Comments)
-                    {
-                        <div style="border-bottom: 1px solid #f0f0f0; 
-                                    padding-bottom: 1rem;
-                                    margin-bottom: 0.25rem;">
-                            <!-- Comment header -->
-                            <div style="display: flex; 
-                                        align-items: center; 
-                                        gap: 0.5rem; 
-                                        margin-bottom: 0.5rem;">
-                                <UserComponent Users="@GetCommentUser(comment)" 
-                                               DisplayMode="UserComponent.UserDisplayMode.CommentAvatar" />
-                                <div style="flex: 1; 
-                                            min-width: 0;">
-                                    <div style="font-weight: 600; 
-                                                color: #1f2937; 
-                                                font-size: 0.875rem;">
-                                        @(comment.PostedBy?.Name ?? "Unknown User")
-                                    </div>
-                                    <div style="color: #9ca3af; 
-                                                font-size: 0.75rem;">
-                                        @comment.PostedAt
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Comment text -->
-                            <div style="white-space: pre-wrap; 
-                                        color: #374151; 
-                                        line-height: 1.5; 
-                                        margin-left: 2.5rem; 
-                                        font-size: 0.875rem;">
-                                @comment.Text
-                            </div>
-                            
-                            <!-- Attachments -->
-                            @if (comment.Attachments != null && comment.Attachments.Length > 0)
-                            {
-                                <div style="margin-top: 0.75rem; 
-                                            margin-left: 2.5rem;">
-                                    <div style="color: #6b7280; 
-                                                font-size: 0.75rem; 
-                                                font-weight: 600; 
-                                                margin-bottom: 0.5rem;">
-                                        📎 Attachments
-                                    </div>
-                                    <div style="display: flex; 
-                                                flex-wrap: wrap; 
-                                                gap: 0.5rem;">
-                                        @foreach (var att in comment.Attachments)
-                                        {
-                                            <div style="background: #f3f4f6; 
-                                                        padding: 0.5rem 0.75rem; 
-                                                        border-radius: 6px; 
-                                                        font-size: 0.75rem; 
-                                                        color: #374151;
-                                                        border: 1px solid #e5e7eb;">
-                                                <span style="font-weight: 500;">@att.Path</span>
-                                                <span style="color: #9ca3af; margin-left: 0.5rem;">(@att.Size bytes)</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-    </div>
+    <!-- Comments List -->
+    <MudPaper Elevation="3" Class="rounded-xl bg-white"
+              Style="flex:1;min-height:300px;max-height:400px;overflow:hidden;display:flex;flex-direction:column;">
 
-    <!-- Comment input area -->
-    <div style="border-radius: 12px; 
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-                border: 1px solid #e5e7eb; 
-                background: #fff; 
-                padding: 1.5rem;">
-        
-        <h4 style="margin: 0 0 1rem 0; 
-                   color: #1f2937; 
-                   font-weight: 600; 
-                   font-size: 1rem;">
+        @if (Comments.Count == 0)
+        {
+            <MudStack AlignItems="AlignItems.Center" JustifyContent="Center" Spacing="1" Class="py-8 text-gray-400">
+                <MudText Typo="Typo.h4">💬</MudText>
+                <MudText Typo="Typo.body2">No comments yet. Be the first to comment!</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                @foreach (var comment in Comments)
+                {
+                    <MudPaper Class="pb-4 border-b border-gray-100" Elevation="0">
+                        <!-- Comment Header -->
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                            <UserComponent Users="@GetCommentUser(comment)"
+                                           DisplayMode="UserComponent.UserDisplayMode.CommentAvatar" />
+                            <MudStack Style="flex:1;min-width:0;">
+                                <MudText Typo="Typo.body2" FontWeight="FontWeight.SemiBold" Color="Color.Default">
+                                    @(comment.PostedBy?.Name ?? "Unknown User")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @comment.PostedAt
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        <!-- Comment Text -->
+                        <MudText Typo="Typo.body2" Class="ml-10 text-gray-700" Style="white-space:pre-wrap;">
+                            @comment.Text
+                        </MudText>
+
+                        <!-- Attachments -->
+                        @if (comment.Attachments != null && comment.Attachments.Length > 0)
+                        {
+                            <MudStack Class="ml-10 mt-3">
+                                <MudText Typo="Typo.caption" FontWeight="FontWeight.Medium" Color="Color.Secondary">
+                                    📎 Attachments
+                                </MudText>
+                                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                                    @foreach (var att in comment.Attachments)
+                                    {
+                                        <MudChip T="string" Color="Color.Default" Variant="Variant.Outlined" Class="text-sm">
+                                            <span class="font-medium">@att.Path</span>
+                                            <span class="text-gray-400 ml-1">(@att.Size bytes)</span>
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        }
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+
+    </MudPaper>
+
+    <!-- Comment Input -->
+    <MudPaper Elevation="3" Class="rounded-xl bg-white pa-6">
+        <MudText Typo="Typo.h6" FontWeight="FontWeight.SemiBold" Class="mb-4">
             Add a comment
-        </h4>
-        
-        <textarea value="@NewCommentText" 
-                  @onchange="OnTextChanged" 
-                  style="width: 100%; 
-                         min-height: 80px; 
-                         max-height: 160px; 
-                         resize: vertical; 
-                         border-radius: 8px; 
-                         border: 2px solid #e5e7eb; 
-                         padding: 0.75rem; 
-                         background: #fff; 
-                         margin-bottom: 1rem; 
-                         font-family: inherit; 
-                         font-size: 0.875rem; 
-                         line-height: 1.5; 
-                         transition: border-color 0.2s ease;
-                         box-sizing: border-box;"
-                  placeholder="Write your comment here..."
-                  onfocus="this.style.borderColor='#007acc'"
-                  onblur="this.style.borderColor='#e5e7eb'"></textarea>
-        
-        <div style="display: flex; 
-                    justify-content: space-between; 
-                    align-items: center; 
-                    gap: 1rem;">
-            
-            <button @onclick="PostComment" 
-                    disabled="@(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment)" 
-                    style="padding: 0.75rem 1.5rem; 
-                           border-radius: 8px; 
-                           border: none; 
-                           background: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "#e5e7eb" : "linear-gradient(135deg, #007acc, #005a99)"); 
-                           color: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "#9ca3af" : "white"); 
-                           cursor: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "not-allowed" : "pointer"); 
-                           font-size: 0.875rem; 
-                           font-weight: 600; 
-                           transition: all 0.2s ease;
-                           box-shadow: @(string.IsNullOrWhiteSpace(NewCommentText) || PostingComment ? "none" : "0 2px 4px rgba(0, 122, 204, 0.2)");">
+        </MudText>
+
+        <MudTextField @bind-Value="NewCommentText"
+                      Placeholder="Write your comment here..."
+                      Lines="4"
+                      Variant="Variant.Outlined"
+                      Class="w-full mb-4"
+                      Immediate="true"
+                      OnBlur="@(async _ => await OnNewCommentTextChanged.InvokeAsync(NewCommentText))" />
+
+        <MudStack Row="true" JustifyContent="SpaceBetween" AlignItems="AlignItems.Center">
+            <MudButton OnClick="PostComment"
+                       Variant="Variant.Filled"
+                       Disabled="@((string.IsNullOrWhiteSpace(NewCommentText) || PostingComment))"
+                       Color="Color.Primary"
+                       Class="font-semibold">
                 @if (PostingComment)
                 {
-                    <span>🔄 Posting...</span>
+                    <MudText Typo="Typo.body2">🔄 Posting...</MudText>
                 }
                 else
                 {
-                    <span>Post Comment</span>
+                    <MudText Typo="Typo.body2">Post Comment</MudText>
                 }
-            </button>
-            
+            </MudButton>
+
             @if (!string.IsNullOrEmpty(PostCommentError))
             {
-                <div style="color: #dc2626; 
-                            font-size: 0.875rem; 
-                            display: flex; 
-                            align-items: center; 
-                            gap: 0.5rem;
-                            background: #fef2f2; 
-                            padding: 0.5rem 0.75rem; 
-                            border-radius: 6px; 
-                            border: 1px solid #fecaca;">
-                    <span>⚠️</span>
-                    <span>@PostCommentError</span>
-                </div>
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="text-sm">
+                    ⚠️ @PostCommentError
+                </MudAlert>
             }
-        </div>
-    </div>
-</div>
+        </MudStack>
+    </MudPaper>
+</MudStack>
 
 @code {
     [Parameter]
@@ -223,18 +131,10 @@
         await OnPostComment.InvokeAsync(NewCommentText);
     }
 
-    private async Task OnTextChanged(ChangeEventArgs e)
-    {
-        var value = e.Value?.ToString() ?? string.Empty;
-        await OnNewCommentTextChanged.InvokeAsync(value);
-    }
-
     private IEnumerable<string> GetCommentUser(Comment comment)
     {
         if (!string.IsNullOrWhiteSpace(comment.PostedBy?.Name))
-        {
             return new[] { comment.PostedBy.Name };
-        }
         return new[] { "Unknown User" };
     }
 }

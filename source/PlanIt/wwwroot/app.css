@@ -86,3 +86,6 @@ h1:focus {
 .mud-typography-caption{
     font-weight:500 !important;
 }
+.bg-lightgray {
+    background-color: #ECEFF1 !important;
+}

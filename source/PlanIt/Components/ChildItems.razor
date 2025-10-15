@@ -3,138 +3,73 @@
 @if (Items != null && Items.Count > 0)
 {
     <!-- Child Items Section -->
-    <div>
-        <h3 style="margin: 0 0 1rem 0; 
-                   color: #1a1a1a; 
-                   font-weight: 600; 
-                   font-size: 1.25rem;">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h6" FontWeight="FontWeight.SemiBold">
             Child Items (@Items.Count)
-        </h3>
-        
-        <div style="border-radius: 12px; 
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-                    border: 1px solid #e5e7eb; 
-                    overflow: hidden; 
-                    background: #fff;">
-            
-            <!-- Table header -->
-            <div style="display: grid; 
-                        grid-template-columns: 2fr 1fr 1.5fr; 
-                        gap: 1rem; 
-                        padding: 1rem 1.5rem; 
-                        background: #f8fafc; 
-                        border-bottom: 2px solid #e5e7eb;">
-                <div style="font-weight: 600; 
-                            color: #374151; 
-                            font-size: 0.875rem;">
-                    Name
-                </div>
-                <div style="font-weight: 600; 
-                            color: #374151; 
-                            font-size: 0.875rem;">
-                    Status
-                </div>
-                <div style="font-weight: 600; 
-                            color: #374151; 
-                            font-size: 0.875rem;">
-                    Assigned To
-                </div>
-            </div>
-            
-            <!-- Table rows -->
-            <div>
-                @foreach (var child in Items)
-                {
-                    <div style="display: grid; 
-                                grid-template-columns: 2fr 1fr 1.5fr; 
-                                gap: 1rem; 
-                                padding: 1rem 1.5rem; 
-                                border-bottom: 1px solid #f0f0f0; 
-                                cursor: pointer; 
-                                transition: all 0.2s ease;"
-                         onmouseover="this.style.background='#f9fafb'"
-                         onmouseout="this.style.background='transparent'">
-                        
-                        <!-- Item name -->
-                        <div style="display: flex; 
-                                    align-items: center; 
-                                    gap: 0.75rem; 
-                                    min-width: 0;">
-                            <div style="width: 8px; 
-                                        height: 8px; 
-                                        border-radius: 50%; 
-                                        background: #007acc; 
-                                        flex-shrink: 0;"></div>
-                            <span style="color: #007acc; 
-                                         font-weight: 500; 
-                                         font-size: 0.875rem; 
-                                         text-decoration: none; 
-                                         transition: color 0.2s ease;
-                                         word-break: break-word;">
-                                @child.Name
-                            </span>
-                        </div>
-                        
-                        <!-- Status -->
-                        <div style="display: flex; 
-                                    align-items: center;">
-                            <StatusComponent Status="@child.Status" />
-                        </div>
-                        
-                        <!-- Assigned users -->
-                        <div style="display: flex; 
-                                    align-items: center; 
-                                    min-width: 0;">
-                            <UserComponent Users="@GetChildAssigneeNames(child)" 
-                                           DisplayMode="UserComponent.UserDisplayMode.Avatars" 
-                                           MaxAvatars="3" />
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
+        </MudText>
+
+        <MudPaper Elevation="3" Class="rounded-xl">
+            <!-- Header -->
+            <MudTable T="Item" Items="Items" Hover="true" Dense="true" Bordered="false" Outlined="false"
+                      Class="bg-white">
+                <HeaderContent>
+                    <MudTh><MudText Typo="Typo.body2" FontWeight="FontWeight.Medium">Name</MudText></MudTh>
+                    <MudTh><MudText Typo="Typo.body2" FontWeight="FontWeight.Medium">Status</MudText></MudTh>
+                    <MudTh><MudText Typo="Typo.body2" FontWeight="FontWeight.Medium">Assigned To</MudText></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.body2" Color="Color.Primary" FontWeight="FontWeight.Medium"
+                                     Class="truncate">
+                                @context.Name
+                            </MudText>
+                        </MudStack>
+                    </MudTd>
+
+                    <MudTd>
+                        <StatusComponent Status="@context.Status" />
+                    </MudTd>
+
+                    <MudTd>
+                        <UserComponent Users="@GetChildAssigneeNames(context)"
+                                       DisplayMode="UserComponent.UserDisplayMode.Avatars"
+                                       MaxAvatars="3" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudStack>
 }
 else
 {
-    <!-- Description section when no child items -->
-    <div>
-        <h3 style="margin: 0 0 1rem 0; 
-                   color: #1a1a1a; 
-                   font-weight: 600; 
-                   font-size: 1.25rem;">
+    <!-- Description Section -->
+    <MudStack Spacing="2" Class="mt-2">
+        <MudText Typo="Typo.h6" FontWeight="FontWeight.SemiBold">
             Description
-        </h3>
-        
-        <div style="border-radius: 12px; 
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-                    border: 1px solid #e5e7eb; 
-                    background: #fff; 
-                    overflow: hidden;">
-            
-            <div style="padding: 2rem;">
+        </MudText>
+
+        <MudPaper Elevation="3" Class="rounded-xl overflow-hidden" Style="flex:1;min-height:250px;max-height:400px;overflow:hidden;display:flex;flex-direction:column;">
+            <MudCardContent Class="p-6">
                 @if (!string.IsNullOrWhiteSpace(CurrentItem?.Description))
                 {
-                    <div style="color: #374151; 
-                                line-height: 1.6; 
-                                white-space: pre-wrap; 
-                                font-size: 0.875rem;">
+                    <MudText Typo="Typo.body2" Color="Color.Default" Class="whitespace-pre-wrap leading-relaxed">
                         @CurrentItem.Description
-                    </div>
+                    </MudText>
                 }
                 else
                 {
-                    <div style="text-align: center; 
-                                color: #9ca3af; 
-                                font-style: italic; 
-                                padding: 2rem 0;">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📝</div>
-                        <p style="margin: 0; font-size: 0.875rem;">No description available for this item.</p>
-                    </div>
+                    <MudStack AlignItems="AlignItems.Center" JustifyContent="Center" Spacing="1" Class="py-10 text-gray-400">
+                        <MudText Typo="Typo.h4">📝</MudText>
+                        <MudText Typo="Typo.body2" Italic="true">
+                            No description available for this item.
+                        </MudText>
+                    </MudStack>
                 }
-            </div>
-        </div>
-    </div>
+            </MudCardContent>
+        </MudPaper>
+    </MudStack>
 }
 
 @code {
@@ -146,7 +81,7 @@ else
 
     private IEnumerable<string> GetChildAssigneeNames(Item child)
     {
-        if (child.AssignedTo != null && child.AssignedTo.Count() > 0)
+        if (child.AssignedTo != null && child.AssignedTo.Any())
         {
             return child.AssignedTo
                 .Where(a => a.User?.Name != null)
