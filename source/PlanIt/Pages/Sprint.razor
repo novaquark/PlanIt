@@ -23,39 +23,25 @@ else if (!loaded)
 }
 else
 {
-    <MudPaper Class="pa-3 mb-4" Elevation="1">
-        <MudText Typo="Typo.h6">TODO: Charts burndown , velocity </MudText>
-    </MudPaper>
-
-    <MudPaper Class="pa-3 mb-4" Elevation="2">
-        <MudStack Row="true">
-            <MudStack Row="true" Spacing="2">
-                <MudChip T="QuickFilterType"
-                    Variant="@(selectedQuickFilter == QuickFilterType.Current ? Variant.Filled : Variant.Outlined)"
-                    Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary"
-                    OnClick="@(() => OnChipClick(QuickFilterType.Current))">Current sprint</MudChip>
+    <MudPaper Class="pa-3 mb-1" Elevation="0">
+            <MudStack Row="true" Spacing="0" Style="gap:0;"Justify="Justify.Center" >
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.Past ? Variant.Filled : Variant.Outlined)"
-                    Icon="@Icons.Material.Filled.ArrowCircleLeft" Color="Color.Primary"
-                    OnClick="@(() => OnChipClick(QuickFilterType.Past))">Past sprint</MudChip>
+                    Color="Color.Primary"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Past))" Style="border-radius: 0px;margin: 0px; border-top-left-radius: 15px; border-bottom-left-radius: 15px;">Past Sprint</MudChip>
+                <MudChip T="QuickFilterType"
+                    Variant="@(selectedQuickFilter == QuickFilterType.Current ? Variant.Filled : Variant.Outlined)"
+                    Color="Color.Primary"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Current))" Style="border-radius: 0px;margin: 0px;">Current Sprint</MudChip>
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.Future ? Variant.Filled : Variant.Outlined)"
-                    Icon="@Icons.Material.Filled.ArrowCircleRight" Color="Color.Primary"
-                    OnClick="@(() => OnChipClick(QuickFilterType.Future))">Future sprint</MudChip>
+                    Color="Color.Primary"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Future))" Style="border-radius: 0px;margin: 0px;">Future Sprint</MudChip>
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.None ? Variant.Filled : Variant.Outlined)"
-                    Icon="@Icons.Material.Filled.Help" Color="Color.Primary"
-                    OnClick="@(() => OnChipClick(QuickFilterType.None))">No sprint</MudChip>
+                    Color="Color.Primary"
+                    OnClick="@(() => OnChipClick(QuickFilterType.None))" Style="border-radius: 0px;margin: 0px; border-top-right-radius: 15px; border-bottom-right-radius: 15px;">No Sprint</MudChip>
             </MudStack>
-            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary" Icon="@Icons.Material.Filled.AddCircle" Clickable="true">Create sprint</MudChip>
-            <MudSelect T="string" MultiSelection="true" Label="Team Aggregate" @bind-SelectedValues="selectedTeams"
-                @bind-SelectedValues:after="ApplyQuickFilters" Dense="true" Class="ml-5">
-                    @foreach (var t in availableTeams)
-                    {
-                        <MudSelectItem Value="@t">@t</MudSelectItem>
-                    }
-            </MudSelect>
-        </MudStack>
     </MudPaper>
 
     <MudPaper Elevation="2" Class="pa-3 mb-4">
@@ -75,42 +61,43 @@ else
             <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.BugReport">
                 Bugs: <b>@BugsCount</b>
             </MudChip>
-            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.AutoStories">
-                Stories: <b>@StoriesCount</b>
-            </MudChip>
+
             <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Checklist">
                 Tasks: <b>@TasksCount</b>
             </MudChip>
-            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Layers">
-                Epics: <b>@EpicsCount</b>
-            </MudChip>
+            <MudSelect T="string" MultiSelection="true" Label="Team Aggregate" @bind-SelectedValues="selectedTeams"
+                @bind-SelectedValues:after="ApplyQuickFilters" Dense="true" Class="ml-5">
+                    @foreach (var t in availableTeams)
+                    {
+                        <MudSelectItem Value="@t">@t</MudSelectItem>
+                    }
+            </MudSelect>   
         </MudStack>
 
     </MudPaper>
-    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
+    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" HideSprintSelector="true" />
 
     <MudTable Items="@rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
         <ColGroup>
+            <col style="width: 120px;" />
             <col />
             <col style="width: 180px;" />
             <col style="width: 150px;" />
-            <col style="width: 120px;" />
             <col style="width: 150px;" />
         </ColGroup>
         <HeaderContent>
             <MudTh>
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => TypeString(x))">Type</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
                 <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.Name)">Name</MudTableSortLabel>
             </MudTh>
             <MudTh>
-                <MudTooltip Text="Summary includes Rank, Type, Priority, and Status">Summary</MudTooltip>
+                <MudTooltip Text="Summary includes Priority and Status">Status</MudTooltip>
             </MudTh>
             <MudTh>
-                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.SubprojectPath ?? string.Empty)">Team
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.SubprojectPath ?? string.Empty)">Sprint
                 </MudTableSortLabel>
-            </MudTh>
-            <MudTh>
-                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.CommittedTo?.Name ?? string.Empty)">
-                    Sprint</MudTableSortLabel>
             </MudTh>
             <MudTh>
                 <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => (object)(x.AssignedTo?.FirstOrDefault()?.User?.Name ?? string.Empty))">Assigned To
@@ -118,18 +105,17 @@ else
             </MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Color="@GetTypeColor(TypeString(context))" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
+                    <MudIcon Icon="@GetTypeIcon(TypeString(context))" Size="Size.Small" Style="margin-right: 4px;" />
+                    @TypeString(context)
+                </MudChip>
+            </MudTd>
             <MudTd DataLabel="Name">
                 <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink>
             </MudTd>
             <MudTd DataLabel="Summary">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudText Typo="Typo.body2" Style="font-weight: 500; min-width: 25px;">#@context.Rank</MudText>
-                    <MudText Style="color: #ccc;">|</MudText>
-                    <MudChip T="string" Color="@GetTypeColor(TypeString(context))" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
-                        <MudIcon Icon="@GetTypeIcon(TypeString(context))" Size="Size.Small" Style="margin-right: 4px;" />
-                        @TypeString(context)
-                    </MudChip>
-                    <MudText Style="color: #ccc;">|</MudText>
                     <MudChip T="string" Color="@GetPriorityColor(context.BeautifulPriority)" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
                         <MudIcon Icon="@GetPriorityIcon(context.BeautifulPriority)" Size="Size.Small" Style="margin-right: 4px;" />
                         @GetPriorityText(context.BeautifulPriority)
@@ -142,7 +128,6 @@ else
                 </MudStack>
             </MudTd>
             <MudTd DataLabel="Team">@context.SubprojectPath</MudTd>
-            <MudTd DataLabel="Sprint">@context.CommittedTo?.Name</MudTd>
             <MudTd DataLabel="Assigned To">
                 @if (context.AssignedTo != null && context.AssignedTo.Length > 0)
                 {
@@ -206,11 +191,6 @@ else
 
             StateHasChanged();
         }
-    }
-
-    private void OnQuickFilterChanged()
-    {
-        ApplyQuickFilters();
     }
 
     private void OnChipClick(QuickFilterType filterType)
@@ -303,31 +283,6 @@ else
         }
         return false;
     }
-
-    private SvgIcon TaskTypeToIcon(string type)
-    {
-        return type switch
-        {
-            "Epic" => Layers,
-            "Story" => Rocket,
-            "Task" => Clipboard,
-            "Bug" => Bug,
-            _ => CircleQuestionMark
-        };
-    }
-
-    private string GetTypeBackgroundColor(string type)
-    {
-        return type switch
-        {
-            "Bug" => "background: #EEEE88;",
-            "Epic" => "background: #E8F4FD;",
-            "Story" => "background: #F0F8E8;",
-            "Task" => "background: #FFF8E1;",
-            _ => ""
-        };
-    }
-
     private string TypeString(Item i)
     {
         if (!string.IsNullOrWhiteSpace(i.Name))
@@ -352,21 +307,6 @@ else
             "Blocked" => Color.Error,
             "On Hold" => Color.Warning,
             _ => Color.Default
-        };
-    }
-
-    private string StatusIcon(string? status)
-    {
-        return (status ?? string.Empty) switch
-        {
-            "New" => Icons.Material.Filled.FiberNew,
-            "To Do" => Icons.Material.Filled.Schedule,
-            "In Progress" => Icons.Material.Filled.Autorenew,
-            "In Review" => Icons.Material.Filled.Visibility,
-            "Done" => Icons.Material.Filled.CheckCircle,
-            "Blocked" => Icons.Material.Filled.Block,
-            "On Hold" => Icons.Material.Filled.PauseCircle,
-            _ => Icons.Material.Filled.Help
         };
     }
 
@@ -509,8 +449,5 @@ else
 
     private int ShowstoppersCount => rankedList?.Count(i => string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase) || i.Name.StartsWith("Critical Bug", StringComparison.OrdinalIgnoreCase)) ?? 0;
     private int BugsCount => rankedList?.Count(i => (TypeString(i) == "Bug") && !string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase)) ?? 0;
-    private int StoriesCount => rankedList?.Count(i => TypeString(i) == "Story") ?? 0;
     private int TasksCount => rankedList?.Count(i => TypeString(i) == "Task") ?? 0;
-    private int EpicsCount => rankedList?.Count(i => TypeString(i) == "Epic") ?? 0;
-
 }

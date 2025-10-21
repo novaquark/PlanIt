@@ -27,14 +27,17 @@
             </MudSelect>
         </MudItem> *@
 
-        <MudItem xs="12" sm="6" md="3">
-            <MudSelect T="string" Label="Sprint" Value="Criteria.Sprint" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Sprint), v))" Dense="true" Clearable="true" Searchable="true">
-                @if (Sprints != null)
-                {
-                    @foreach(var p in Sprints) { <MudSelectItem Value="@p">@p</MudSelectItem> }
-                }
-            </MudSelect>
-        </MudItem>
+        @if (!HideSprintSelector)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string" Label="Sprint" Value="Criteria.Sprint" ValueChanged="@(v => OnSelectChanged(nameof(Criteria.Sprint), v))" Dense="true" Clearable="true" Searchable="true">
+                    @if (Sprints != null)
+                    {
+                        @foreach(var p in Sprints) { <MudSelectItem Value="@p">@p</MudSelectItem> }
+                    }
+                </MudSelect>
+            </MudItem>
+        }
 
         <MudItem xs="12" sm="6" md="3">
             <MudAutocomplete T="string" Label="Assigned To" Value="Criteria.Assignee" ValueChanged="@(v => OnTextChanged(nameof(Criteria.Assignee), v))" Dense="true" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Person" SearchFunc="SearchAssignees" Clearable="true" />
@@ -55,6 +58,7 @@
 @code {
     [Parameter] public IEnumerable<TModel> TargetItems { get; set; } = new List<TModel>();
     [Parameter] public EventCallback<FilterResult<TModel>> OnApplyFilter { get; set; }
+    [Parameter] public bool HideSprintSelector { get; set; } = false;
     [Inject] private IP4PlanClientProvider P4PlanClientProvider { get; set; } = null!;
     [Inject] private IHttpContextAccessor HttpContextAccessor { get; set; } = null!;
     [Inject] private NavigationManager Navigation { get; set; } = null!;
