@@ -58,6 +58,7 @@
 @code {
     [Parameter] public IEnumerable<TModel> TargetItems { get; set; } = new List<TModel>();
     [Parameter] public EventCallback<FilterResult<TModel>> OnApplyFilter { get; set; }
+    [Parameter] public EventCallback<bool> OnBusyChanged { get; set; }
     [Parameter] public bool HideSprintSelector { get; set; } = false;
     [Inject] private IP4PlanClientProvider P4PlanClientProvider { get; set; } = null!;
     [Inject] private IHttpContextAccessor HttpContextAccessor { get; set; } = null!;
@@ -73,6 +74,8 @@
 
     private bool _filtersLoadedFromQuery = false;
     private bool _applyFromQueryPending = false;
+    private bool _userInteracted = false;
+    private bool _isBusy = false;
 
 
     protected override void OnParametersSet()
@@ -80,10 +83,7 @@
         if (TargetItems != null)
         {
             var incoming = TargetItems.ToList();
-            if (_originalItems.Count == 0 || incoming.Count > _originalItems.Count)
-            {
-                _originalItems = incoming;
-            }
+            _originalItems = incoming; 
         }
         if (_applyFromQueryPending && _originalItems.Count > 0)
         {
@@ -193,6 +193,7 @@
             case nameof(Criteria.PriorityHigh): Criteria.PriorityHigh = !Criteria.PriorityHigh; break;
             case nameof(Criteria.PriorityOther): Criteria.PriorityOther = !Criteria.PriorityOther; break;
         }
+        _userInteracted = true;
         _ = ApplyFilters();
     }
 
@@ -203,6 +204,7 @@
         {
             case nameof(Criteria.Sprint): Criteria.Sprint = value; break;
         }
+        _userInteracted = true;
         _ = ApplyFilters();
     }
 
@@ -212,13 +214,23 @@
         {
             case nameof(Criteria.Assignee): Criteria.Assignee = value; break;
         }
+        _userInteracted = true;
         _ = ApplyFilters();
     }
 
 
+    public async Task ReapplyAsync()
+    {
+        await ApplyFilters();
+    }
+
     private async Task ApplyFilters()
     {
-        var source = _originalItems.Any() ? _originalItems : TargetItems.ToList();
+        if (_isBusy) return;
+        _isBusy = true;
+        await OnBusyChanged.InvokeAsync(true);
+
+        var source = TargetItems?.ToList() ?? new List<TModel>();
         var filtered = source.ToList();
 
         // Current user info for OnlyMyTasks
@@ -316,17 +328,24 @@
             Criteria = Criteria,
             FilteredItems = filtered
         });
+
+        _isBusy = false;
+        await OnBusyChanged.InvokeAsync(false);
     }
 
     private async void Cancel()
     {
         Criteria.Reset();
-        // Reset to unfiltered data in parent
+        // Reset to currently provided data from parent
+        _isBusy = true;
+        await OnBusyChanged.InvokeAsync(true);
         await OnApplyFilter.InvokeAsync(new FilterResult<TModel>
         {
             Criteria = Criteria,
-            FilteredItems = (_originalItems.Any() ? _originalItems : TargetItems.ToList())
+            FilteredItems = TargetItems?.ToList() ?? new List<TModel>()
         });
+        _isBusy = false;
+        await OnBusyChanged.InvokeAsync(false);
     }
 
 }

@@ -27,19 +27,19 @@ else
             <MudStack Row="true" Spacing="0" Style="gap:0;"Justify="Justify.Center" >
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.Past ? Variant.Filled : Variant.Outlined)"
-                    Color="Color.Primary"
+                    Color="Color.Primary" Disabled="@isFiltering"
                     OnClick="@(() => OnChipClick(QuickFilterType.Past))" Style="border-radius: 0px;margin: 0px; border-top-left-radius: 15px; border-bottom-left-radius: 15px;">Past Sprint</MudChip>
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.Current ? Variant.Filled : Variant.Outlined)"
-                    Color="Color.Primary"
+                    Color="Color.Primary" Disabled="@isFiltering"
                     OnClick="@(() => OnChipClick(QuickFilterType.Current))" Style="border-radius: 0px;margin: 0px;">Current Sprint</MudChip>
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.Future ? Variant.Filled : Variant.Outlined)"
-                    Color="Color.Primary"
+                    Color="Color.Primary" Disabled="@isFiltering"
                     OnClick="@(() => OnChipClick(QuickFilterType.Future))" Style="border-radius: 0px;margin: 0px;">Future Sprint</MudChip>
                 <MudChip T="QuickFilterType"
                     Variant="@(selectedQuickFilter == QuickFilterType.None ? Variant.Filled : Variant.Outlined)"
-                    Color="Color.Primary"
+                    Color="Color.Primary" Disabled="@isFiltering"
                     OnClick="@(() => OnChipClick(QuickFilterType.None))" Style="border-radius: 0px;margin: 0px; border-top-right-radius: 15px; border-bottom-right-radius: 15px;">No Sprint</MudChip>
             </MudStack>
     </MudPaper>
@@ -71,11 +71,15 @@ else
                     {
                         <MudSelectItem Value="@t">@t</MudSelectItem>
                     }
-            </MudSelect>   
+            </MudSelect>
         </MudStack>
 
     </MudPaper>
-    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" HideSprintSelector="true" />
+    <MudOverlay Visible="@isFiltering" DarkBackground="true">
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    </MudOverlay>
+
+    <FilterToolbar TModel="Item" TargetItems="quickFilteredList" OnApplyFilter="HandleFilterApplied" OnBusyChanged="HandleFilteringBusyChanged" HideSprintSelector="true" @ref="filterToolbarRef" />
 
     <MudTable Items="@rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
         <ColGroup>
@@ -152,10 +156,31 @@ else
 }
 
 @code {
+    private void HandleFilteringBusyChanged(bool busy)
+    {
+        isFiltering = busy;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (reapplyPending)
+        {
+            reapplyPending = false;
+            if (filterToolbarRef is not null)
+                await filterToolbarRef.ReapplyAsync();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     private bool loaded { get; set; }
     public enum QuickFilterType { Current, Past, Future, None }
     private List<Item> allItems = new();
     private List<Item> rankedList = new();
+    private List<Item> quickFilteredList = new();
+    private FilterToolbar<Item>? filterToolbarRef;
+    private bool reapplyPending;
+    private bool isFiltering;
     private IEnumerable<string> selectedTeams = new HashSet<string>();
     private HashSet<string> availableTeams = new(StringComparer.OrdinalIgnoreCase);
     private QuickFilterType selectedQuickFilter = QuickFilterType.Current;
@@ -187,22 +212,23 @@ else
             loaded = true;
 
             // Apply initial filter (Current sprint by default)
-            ApplyQuickFilters();
+            await ApplyQuickFilters();
 
             StateHasChanged();
         }
     }
 
-    private void OnChipClick(QuickFilterType filterType)
+    private async Task OnChipClick(QuickFilterType filterType)
     {
         selectedQuickFilter = filterType;
-        ApplyQuickFilters();
+        await ApplyQuickFilters();
     }
 
-    private void ApplyQuickFilters()
+    private async Task ApplyQuickFilters()
     {
         if (allItems == null || !allItems.Any())
         {
+            quickFilteredList = new List<Item>();
             rankedList = new List<Item>();
             return;
         }
@@ -226,7 +252,8 @@ else
             selectedTeams.Contains(x.SubprojectPath));
         }
 
-        rankedList = filtered.ToList();
+        quickFilteredList = filtered.ToList();
+        rankedList = quickFilteredList.ToList();
 
         // Add ranking for display
         for (var i = 0; i < rankedList.Count; i++)
@@ -235,24 +262,18 @@ else
         }
 
         StateHasChanged();
+        reapplyPending = filterToolbarRef is not null;
+        if (reapplyPending)
+            isFiltering = true;
     }
 
     private void HandleFilterApplied(FilterResult<Item> result)
     {
-        rankedList?.Clear();
-        if (result.FilteredItems != null && rankedList != null)
-        {
-            foreach (var item in result.FilteredItems)
-            {
-                rankedList.Add(item);
-            }
-
-            // Add ranking for display
-            for (var i = 0; i < rankedList.Count; i++)
-            {
-                rankedList[i].Rank = i + 1;
-            }
-        }
+        var items = result.FilteredItems ?? new List<Item>();
+        rankedList = items.ToList();
+        for (var i = 0; i < rankedList.Count; i++)
+            rankedList[i].Rank = i + 1;
+        isFiltering = false;
         StateHasChanged();
     }
 
