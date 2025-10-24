@@ -1,0 +1,474 @@
+@page "/sprint"
+@using System.Security.Claims
+@using System.Collections.ObjectModel
+@using P4PlanLib.Model
+@using PlanIt.Components.FilterToolbar
+@using static Blazicons.Lucide
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Navigation
+@inject IProjectDetailsService ProjectDetailsService
+
+<PageTitle>Sprint</PageTitle>
+
+<h1>Sprint</h1>
+
+@if (!HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+{
+    <p>Please <NavLink href="/">Login to P4 Plan</NavLink> before accessing this dashboard</p>
+}
+else if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <MudPaper Class="pa-3 mb-1" Elevation="0">
+            <MudStack Row="true" Spacing="0" Style="gap:0;"Justify="Justify.Center" >
+                <MudChip T="QuickFilterType"
+                    Variant="@(selectedQuickFilter == QuickFilterType.Past ? Variant.Filled : Variant.Outlined)"
+                    Color="Color.Primary" Disabled="@isFiltering"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Past))" Style="border-radius: 0px;margin: 0px; border-top-left-radius: 15px; border-bottom-left-radius: 15px;">Past Sprint</MudChip>
+                <MudChip T="QuickFilterType"
+                    Variant="@(selectedQuickFilter == QuickFilterType.Current ? Variant.Filled : Variant.Outlined)"
+                    Color="Color.Primary" Disabled="@isFiltering"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Current))" Style="border-radius: 0px;margin: 0px;">Current Sprint</MudChip>
+                <MudChip T="QuickFilterType"
+                    Variant="@(selectedQuickFilter == QuickFilterType.Future ? Variant.Filled : Variant.Outlined)"
+                    Color="Color.Primary" Disabled="@isFiltering"
+                    OnClick="@(() => OnChipClick(QuickFilterType.Future))" Style="border-radius: 0px;margin: 0px;">Future Sprint</MudChip>
+                <MudChip T="QuickFilterType"
+                    Variant="@(selectedQuickFilter == QuickFilterType.None ? Variant.Filled : Variant.Outlined)"
+                    Color="Color.Primary" Disabled="@isFiltering"
+                    OnClick="@(() => OnChipClick(QuickFilterType.None))" Style="border-radius: 0px;margin: 0px; border-top-right-radius: 15px; border-bottom-right-radius: 15px;">No Sprint</MudChip>
+            </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="2" Class="pa-3 mb-4">
+        <MudStack Row="true" Spacing="1" Class="mb-2">
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Event">
+                Start–End: <b>@(SprintStart?.ToString("dd MMM") ?? "-") – @(SprintEnd?.ToString("dd MMM") ?? "-")</b>
+            </MudChip>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Flag">
+                Release: <b>@ProjectDetailsService.NextMilestoneName</b>
+            </MudChip>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.ViewList">
+                Total: <b>@(rankedList?.Count ?? 0)</b>
+            </MudChip>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Report">
+                Showstoppers: <b>@ShowstoppersCount</b>
+            </MudChip>
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.BugReport">
+                Bugs: <b>@BugsCount</b>
+            </MudChip>
+
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Icon="@Icons.Material.Filled.Checklist">
+                Tasks: <b>@TasksCount</b>
+            </MudChip>
+            <MudSelect T="string" MultiSelection="true" Label="Team Aggregate" @bind-SelectedValues="selectedTeams"
+                @bind-SelectedValues:after="ApplyQuickFilters" Dense="true" Class="ml-5">
+                    @foreach (var t in availableTeams)
+                    {
+                        <MudSelectItem Value="@t">@t</MudSelectItem>
+                    }
+            </MudSelect>
+        </MudStack>
+
+    </MudPaper>
+    <MudOverlay Visible="@isFiltering" DarkBackground="true">
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    </MudOverlay>
+
+    <FilterToolbar TModel="Item" TargetItems="quickFilteredList" OnApplyFilter="HandleFilterApplied" OnBusyChanged="HandleFilteringBusyChanged" HideSprintSelector="true" @ref="filterToolbarRef" />
+
+    <MudTable Items="@rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" SortLabel="Sort by">
+        <ColGroup>
+            <col style="width: 120px;" />
+            <col />
+            <col style="width: 180px;" />
+            <col style="width: 150px;" />
+            <col style="width: 150px;" />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => TypeString(x))">Type</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.Name)">Name</MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTooltip Text="Summary includes Priority and Status">Status</MudTooltip>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => x.SubprojectPath ?? string.Empty)">Sprint
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<P4PlanLib.Model.Item, object>(x => (object)(x.AssignedTo?.FirstOrDefault()?.User?.Name ?? string.Empty))">Assigned To
+                </MudTableSortLabel>
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Color="@GetTypeColor(TypeString(context))" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
+                    <MudIcon Icon="@GetTypeIcon(TypeString(context))" Size="Size.Small" Style="margin-right: 4px;" />
+                    @TypeString(context)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Name">
+                <MudLink href=@($"/details/{context.Id}")>@context.Name</MudLink>
+            </MudTd>
+            <MudTd DataLabel="Summary">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudChip T="string" Color="@GetPriorityColor(context.BeautifulPriority)" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
+                        <MudIcon Icon="@GetPriorityIcon(context.BeautifulPriority)" Size="Size.Small" Style="margin-right: 4px;" />
+                        @GetPriorityText(context.BeautifulPriority)
+                    </MudChip>
+                    <MudText Style="color: #ccc;">|</MudText>
+                    <MudChip T="string" Color="@StatusColor(context.Status)" Variant="Variant.Text" Size="Size.Small" Style="font-size: 11px; height: 20px;">
+                        <MudIcon Icon="@GetStatusIcon(context.Status)" Size="Size.Small" Style="margin-right: 4px;" />
+                        @context.Status
+                    </MudChip>
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="Team">@context.SubprojectPath</MudTd>
+            <MudTd DataLabel="Assigned To">
+                @if (context.AssignedTo != null && context.AssignedTo.Length > 0)
+                {
+                    var firstUser = context.AssignedTo.FirstOrDefault(a => a.User != null)?.User?.Name;
+                    var count = context.AssignedTo.Count(a => a.User != null);
+                    if (!string.IsNullOrEmpty(firstUser))
+                    {
+                        <MudText>@firstUser</MudText>
+                    }
+                    else
+                    {
+                        <MudText>unassigned</MudText>
+                    }
+                }
+                else
+                {
+                    <MudText>unassigned</MudText>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private void HandleFilteringBusyChanged(bool busy)
+    {
+        isFiltering = busy;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (reapplyPending)
+        {
+            reapplyPending = false;
+            if (filterToolbarRef is not null)
+                await filterToolbarRef.ReapplyAsync();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private bool loaded { get; set; }
+    public enum QuickFilterType { Current, Past, Future, None }
+    private List<Item> allItems = new();
+    private List<Item> rankedList = new();
+    private List<Item> quickFilteredList = new();
+    private FilterToolbar<Item>? filterToolbarRef;
+    private bool reapplyPending;
+    private bool isFiltering;
+    private IEnumerable<string> selectedTeams = new HashSet<string>();
+    private HashSet<string> availableTeams = new(StringComparer.OrdinalIgnoreCase);
+    private QuickFilterType selectedQuickFilter = QuickFilterType.Current;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
+        {
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            if (p4PlanClient is null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            var items = await p4PlanClient.Search("");
+            allItems = items ?? new List<Item>();
+
+            // Extract available teams from SubprojectPath
+            foreach (var item in allItems)
+            {
+                if (!string.IsNullOrWhiteSpace(item.SubprojectPath))
+                {
+                    availableTeams.Add(item.SubprojectPath);
+                }
+            }
+
+            loaded = true;
+
+            // Apply initial filter (Current sprint by default)
+            await ApplyQuickFilters();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnChipClick(QuickFilterType filterType)
+    {
+        selectedQuickFilter = filterType;
+        await ApplyQuickFilters();
+    }
+
+    private async Task ApplyQuickFilters()
+    {
+        if (allItems == null || !allItems.Any())
+        {
+            quickFilteredList = new List<Item>();
+            rankedList = new List<Item>();
+            return;
+        }
+
+        var filtered = allItems.AsEnumerable();
+
+        // Apply quick filter
+        filtered = selectedQuickFilter switch
+        {
+            QuickFilterType.Current => filtered.Where(x => x.CommittedTo?.Name == ProjectDetailsService.CurrentSprint),
+            QuickFilterType.Past => filtered.Where(x => x.CommittedTo != null && IsPastSprint(x.CommittedTo.Name)),
+            QuickFilterType.Future => filtered.Where(x => x.CommittedTo != null && IsFutureSprint(x.CommittedTo.Name)),
+            QuickFilterType.None => filtered.Where(x => x.CommittedTo == null || x.CommittedTo.Name == "Backlog"),
+            _ => filtered
+        };
+
+        // Apply team filter
+        if (selectedTeams.Any())
+        {
+            filtered = filtered.Where(x => !string.IsNullOrWhiteSpace(x.SubprojectPath) &&
+            selectedTeams.Contains(x.SubprojectPath));
+        }
+
+        quickFilteredList = filtered.ToList();
+        rankedList = quickFilteredList.ToList();
+
+        // Add ranking for display
+        for (var i = 0; i < rankedList.Count; i++)
+        {
+            rankedList[i].Rank = i + 1;
+        }
+
+        StateHasChanged();
+        reapplyPending = filterToolbarRef is not null;
+        if (reapplyPending)
+            isFiltering = true;
+    }
+
+    private void HandleFilterApplied(FilterResult<Item> result)
+    {
+        var items = result.FilteredItems ?? new List<Item>();
+        rankedList = items.ToList();
+        for (var i = 0; i < rankedList.Count; i++)
+            rankedList[i].Rank = i + 1;
+        isFiltering = false;
+        StateHasChanged();
+    }
+
+    private bool IsPastSprint(string sprintName)
+    {
+        // Extract sprint number from "Sprint X" format
+        if (sprintName.StartsWith("Sprint ") && int.TryParse(sprintName.Substring(7), out int sprintNumber))
+        {
+            if (ProjectDetailsService.CurrentSprint.StartsWith("Sprint ") &&
+            int.TryParse(ProjectDetailsService.CurrentSprint.Substring(7), out int currentSprintNumber))
+            {
+                return sprintNumber < currentSprintNumber;
+            }
+        }
+        return false;
+    }
+
+    private bool IsFutureSprint(string sprintName)
+    {
+        // Extract sprint number from "Sprint X" format
+        if (sprintName.StartsWith("Sprint ") && int.TryParse(sprintName.Substring(7), out int sprintNumber))
+        {
+            if (ProjectDetailsService.CurrentSprint.StartsWith("Sprint ") &&
+            int.TryParse(ProjectDetailsService.CurrentSprint.Substring(7), out int currentSprintNumber))
+            {
+                return sprintNumber > currentSprintNumber;
+            }
+        }
+        return false;
+    }
+    private string TypeString(Item i)
+    {
+        if (!string.IsNullOrWhiteSpace(i.Name))
+        {
+            if (i.Name.StartsWith("Epic", StringComparison.OrdinalIgnoreCase)) return "Epic";
+            if (i.Name.StartsWith("Story", StringComparison.OrdinalIgnoreCase)) return "Story";
+            if (i.Name.StartsWith("Task", StringComparison.OrdinalIgnoreCase)) return "Task";
+            if (i.Name.Contains("Bug", StringComparison.OrdinalIgnoreCase)) return "Bug";
+        }
+        return i.Type.ToString();
+    }
+
+    private Color StatusColor(string? status)
+    {
+        return (status ?? string.Empty) switch
+        {
+            "New" => Color.Default,
+            "To Do" => Color.Info,
+            "In Progress" => Color.Warning,
+            "In Review" => Color.Primary,
+            "Done" => Color.Success,
+            "Blocked" => Color.Error,
+            "On Hold" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private DateTime? SprintStart
+    {
+        get
+        {
+            var dates = rankedList?.Select(i => i.CommittedTo?.StartDate).Where(d => d.HasValue).Select(d => d.Value).OrderBy(d => d);
+            return dates != null && dates.Any() ? dates.First() : (DateTime?)null;
+        }
+    }
+
+    private DateTime? SprintEnd
+    {
+        get
+        {
+            var dates = rankedList?.Select(i => i.CommittedTo?.EndDate).Where(d => d.HasValue).Select(d => d.Value).OrderByDescending(d => d);
+            return dates != null && dates.Any() ? dates.First() : (DateTime?)null;
+        }
+    }
+
+    private string GetTypeIcon(string type)
+    {
+        return type switch
+        {
+            "Epic" => Icons.Material.Filled.AccountTree,
+            "Story" => Icons.Material.Filled.MenuBook,
+            "Task" => Icons.Material.Filled.Task,
+            "Bug" => Icons.Material.Filled.BugReport,
+            "Showstopper" => Icons.Material.Filled.Warning,
+            "Sprint" => Icons.Material.Filled.DirectionsRun,
+            "Backlog" => Icons.Material.Filled.Inventory,
+            _ => Icons.Material.Filled.HelpOutline
+        };
+    }
+
+    private Color GetTypeColor(string type)
+    {
+        return type switch
+        {
+            "Epic" => Color.Primary,
+            "Story" => Color.Info,
+            "Task" => Color.Default,
+            "Bug" => Color.Warning,
+            "Showstopper" => Color.Error,
+            "Sprint" => Color.Success,
+            "Backlog" => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPriorityIcon(string priority)
+    {
+        // Extract priority number from formatted string (e.g., "1 - Very High" -> 1)
+        var priorityNumber = ExtractPriorityNumber(priority);
+
+        return priorityNumber switch
+        {
+            1 => Icons.Material.Filled.PriorityHigh,      // Very High
+            2 => Icons.Material.Filled.KeyboardArrowUp,   // High
+            3 => Icons.Material.Filled.Remove,            // Medium
+            5 => Icons.Material.Filled.KeyboardArrowDown, // Low
+            6 => Icons.Material.Filled.KeyboardDoubleArrowDown, // Very Low
+            4 => Icons.Material.Filled.Circle,            // No prio
+            _ => Icons.Material.Filled.Circle             // Default
+        };
+    }
+
+    private Color GetPriorityColor(string priority)
+    {
+        // Extract priority number from formatted string (e.g., "1 - Very High" -> 1)
+        var priorityNumber = ExtractPriorityNumber(priority);
+
+        return priorityNumber switch
+        {
+            1 => Color.Error,    // Very High - Red
+            2 => Color.Error,    // High - Red
+            3 => Color.Warning,  // Medium - Yellow
+            5 => Color.Success,  // Low - Green
+            6 => Color.Success,  // Very Low - Green
+            4 => Color.Default,  // No prio - Default
+            _ => Color.Default   // Default
+        };
+    }
+
+    private int ExtractPriorityNumber(string priority)
+    {
+        if (string.IsNullOrEmpty(priority))
+            return 4; // Default to "No prio"
+
+        // Try to extract number from the beginning of the string (e.g., "1 - Very High" -> 1)
+        var parts = priority.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0 && int.TryParse(parts[0], out var number))
+        {
+            return number;
+        }
+
+        // Fallback for raw priority strings
+        return priority.ToLowerInvariant() switch
+        {
+            "veryhigh" => 1,
+            "high" => 2,
+            "medium" => 3,
+            "low" => 5,
+            "verylow" => 6,
+            _ => 4 // Default to "No prio"
+        };
+    }
+
+    private string GetPriorityText(string priority)
+    {
+        var priorityNumber = ExtractPriorityNumber(priority);
+
+        return priorityNumber switch
+        {
+            1 => "Very High",
+            2 => "High",
+            3 => "Medium",
+            5 => "Low",
+            6 => "Very Low",
+            4 => "No Priority",
+            _ => "No Priority"
+        };
+    }
+
+    private string GetStatusIcon(string status)
+    {
+        return (status ?? string.Empty) switch
+        {
+            "New" => Icons.Material.Filled.FiberNew,
+            "To Do" => Icons.Material.Filled.RadioButtonUnchecked,
+            "In Progress" => Icons.Material.Filled.Schedule,
+            "In Review" => Icons.Material.Filled.RateReview,
+            "Done" => Icons.Material.Filled.CheckCircle,
+            "Blocked" => Icons.Material.Filled.Block,
+            "On Hold" => Icons.Material.Filled.Pause,
+            _ => Icons.Material.Filled.HelpOutline
+        };
+    }
+
+    private int ShowstoppersCount => rankedList?.Count(i => string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase) || i.Name.StartsWith("Critical Bug", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    private int BugsCount => rankedList?.Count(i => (TypeString(i) == "Bug") && !string.Equals(i.Severity, "Critical", StringComparison.OrdinalIgnoreCase)) ?? 0;
+    private int TasksCount => rankedList?.Count(i => TypeString(i) == "Task") ?? 0;
+}

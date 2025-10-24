@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace P4PlanLib.Model;
 
@@ -15,8 +16,8 @@ public class Item
     /// <summary>
     /// Can be Backlog, Bug, Sprint, Showstopper
     /// </summary>
-    public string Type { get; set; } = string.Empty;
-
+    public ItemType Type { get; set; }
+    
     [JsonProperty("projectID")]
     public string ProjectID { get; set; } = string.Empty;
 
@@ -82,4 +83,15 @@ public class Item
             };
         }
     }
+}
+
+public enum ItemType
+{
+    [Display(Name = "Scheduled Task")]
+    ScheduledTask,
+    [Display(Name = "Backlog Task")]
+    BacklogTask,
+    Bug,
+    Sprint,
+    Release
 }
