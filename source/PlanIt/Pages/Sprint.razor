@@ -335,7 +335,7 @@ else
     {
         get
         {
-            var dates = rankedList?.Where(i => i.StartDate.HasValue).Select(i => i.StartDate!.Value).OrderBy(d => d);
+            var dates = rankedList?.Select(i => i.CommittedTo?.StartDate).Where(d => d.HasValue).Select(d => d.Value).OrderBy(d => d);
             return dates != null && dates.Any() ? dates.First() : (DateTime?)null;
         }
     }
@@ -344,7 +344,7 @@ else
     {
         get
         {
-            var dates = rankedList?.Where(i => i.EndDate.HasValue).Select(i => i.EndDate!.Value).OrderByDescending(d => d);
+            var dates = rankedList?.Select(i => i.CommittedTo?.EndDate).Where(d => d.HasValue).Select(d => d.Value).OrderByDescending(d => d);
             return dates != null && dates.Any() ? dates.First() : (DateTime?)null;
         }
     }

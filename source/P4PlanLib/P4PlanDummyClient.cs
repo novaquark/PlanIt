@@ -33,7 +33,7 @@ namespace P4PlanLib
                     Name = $"Epic {i}: {GetEpicName(i)}",
                     Description = GetEpicDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = ItemType.Epic,
+                    Type = ItemType.BacklogTask,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
@@ -63,7 +63,7 @@ namespace P4PlanLib
                     Name = $"Story {i}: {GetStoryName(i)}",
                     Description = GetStoryDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = ItemType.Story,
+                    Type = ItemType.BacklogTask,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
@@ -93,7 +93,7 @@ namespace P4PlanLib
                     Name = $"Task {i}: {GetTaskName(i)}",
                     Description = GetTaskDescription(i),
                     Status = GetRandomStatus(random),
-                    Type = ItemType.Task,
+                    Type = ItemType.ScheduledTask,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = GetRandomPriority(random),
                     Severity = GetRandomSeverity(random),
@@ -151,7 +151,7 @@ namespace P4PlanLib
                     Name = $"Critical Bug {i}: {GetShowstopperName(i)}",
                     Description = GetShowstopperDescription(i),
                     Status = GetRandomStatus(random, 0, 3), // Only New, To Do, In Progress
-                    Type = ItemType.Showstopper,
+                    Type = ItemType.Bug,
                     AssignedTo = [new AssignedTo { User = new User() { Name = assignedUser } }],
                     Priority = "veryHigh",
                     Severity = "Critical",
@@ -183,7 +183,7 @@ namespace P4PlanLib
                     Name = $"Story {i} for {epic.Name}",
                     Description = $"Implementation story for {epic.Name}",
                     Status = GetRandomStatus(random),
-                    Type = ItemType.Story,
+                    Type = ItemType.BacklogTask,
                     AssignedTo = [new AssignedTo { User = new User() { Name = GetRandomDeveloper(random) } }],
                     CommittedTo = epic.CommittedTo,
                     Priority = GetRandomPriority(random),
@@ -216,7 +216,7 @@ namespace P4PlanLib
                     Name = $"Task {i} for {story.Name}",
                     Description = $"Implementation task for {story.Name}",
                     Status = GetRandomStatus(random),
-                    Type = ItemType.Task,
+                    Type = ItemType.ScheduledTask,
                     AssignedTo = [new AssignedTo { User = new User() { Name = GetRandomDeveloper(random) } }],
                     CommittedTo = story.CommittedTo,
                     Priority = GetRandomPriority(random),
@@ -757,7 +757,7 @@ namespace P4PlanLib
             }
             else if (query.Contains("Item type=\"backlog item\"") || query.Contains("Item type!=\"bug\"") || query.Contains("\"Item type\"=\"backlog item\""))
             {
-                return items.Where(i => i.Type == P4PlanLib.Model.ItemType.Backlog).ToList();
+                return items.Where(i => i.Type == P4PlanLib.Model.ItemType.BacklogTask).ToList();
             }
 
             return items; // No type filter applied

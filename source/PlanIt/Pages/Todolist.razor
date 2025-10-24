@@ -161,12 +161,10 @@ else
         switch (i.Type)
         {
             case ItemType.Bug: return "Bug";
-            case ItemType.Showstopper: return "Showstopper";
             case ItemType.Sprint: return "Sprint";
-            case ItemType.Backlog: return "Backlog";
-            case ItemType.Epic: return "Epic";
-            case ItemType.Story: return "Story";
-            case ItemType.Task: return "Task";
+            case ItemType.BacklogTask: return "Backlog";
+            case ItemType.ScheduledTask: return "Task";
+            case ItemType.Release: return "Release";
             default: return i.Type.ToString();
         }
     }

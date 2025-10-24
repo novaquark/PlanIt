@@ -74,7 +74,6 @@
 
     private bool _filtersLoadedFromQuery = false;
     private bool _applyFromQueryPending = false;
-    private bool _userInteracted = false;
     private bool _isBusy = false;
 
 
@@ -193,7 +192,6 @@
             case nameof(Criteria.PriorityHigh): Criteria.PriorityHigh = !Criteria.PriorityHigh; break;
             case nameof(Criteria.PriorityOther): Criteria.PriorityOther = !Criteria.PriorityOther; break;
         }
-        _userInteracted = true;
         _ = ApplyFilters();
     }
 
@@ -204,7 +202,6 @@
         {
             case nameof(Criteria.Sprint): Criteria.Sprint = value; break;
         }
-        _userInteracted = true;
         _ = ApplyFilters();
     }
 
@@ -214,7 +211,6 @@
         {
             case nameof(Criteria.Assignee): Criteria.Assignee = value; break;
         }
-        _userInteracted = true;
         _ = ApplyFilters();
     }
 

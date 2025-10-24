@@ -2,7 +2,10 @@
 @using GraphQL
 @using System.Security.Claims
 @using System.Collections.ObjectModel
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
 @using P4PlanLib.Model
+@using P4PlanLib.Extensions
 @using PlanIt.Components.FilterToolbar
 @inject HttpClient Http
 @inject IP4PlanClientProvider P4PlanClientProvider
@@ -37,7 +40,17 @@ else
         <Columns>
             <HierarchyColumn T="P4PlanLib.Model.Item" InitiallyExpandedFunc="@(x => false)" EnableHeaderToggle="true" />
             <PropertyColumn Property="x => x.Rank" Title="Rank" Sortable="true" />
-            <PropertyColumn Property="x => x.Type" />
+            <PropertyColumn Property="x => x.Type" Title="Type">
+                <CellTemplate>
+                    @{
+                        var item = context.Item as P4PlanLib.Model.Item;
+                        if (item != null)
+                        {
+                            @item.Type.GetDisplayName()
+                        }
+                    }
+                </CellTemplate>
+            </PropertyColumn>
             <PropertyColumn Property="x => x.Name" SortBy="@_sortBy" Filterable="true" Sortable="true" />
             <PropertyColumn Property="x => x.BeautifulPriority" Title="Priority" />
             <PropertyColumn Property="x => x.EstimatedDays" Title="Hours remaining" />
@@ -103,32 +116,6 @@ else
         return x.Name;
     };
 
-    private void NavigateToDetails(string id)
-    {
-        Navigation.NavigateTo($"/details/{id}");
-    }
-
-    private SvgIcon TaskTypeToIcon(string type)
-    {
-        return type switch
-        {
-            "Showstopper" => Lucide.OctagonMinus,
-            "Sprint" => Lucide.Rocket,
-            "Backlog" => Lucide.Clipboard,
-            "Bug" => Lucide.Bug,
-            _ => Lucide.CircleQuestionMark
-        };
-    }
-
-    private string GetTypeBackgroundColor(string type)
-    {
-        return type switch
-        {
-            "Showstopper" => "background: #EE8888;",
-            "Bug" => "background: #EEEE88;",
-            _ => ""
-        };
-    }
     private void HandleFilterApplied(FilterResult<Item> result)
     {
         rankedList?.Clear();

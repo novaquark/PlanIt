@@ -7,7 +7,11 @@ public class Sprint : Item
 
     [JsonProperty("localId")]
     public string LocalId { get; set; } = string.Empty;
-
+    
+    [JsonProperty("start")]
+    public DateTime? StartDate { get; set; }
+       [JsonProperty("finish")]
+    public DateTime? EndDate { get; set; }
     public bool IsCurrentSprint()
     {
         var now = DateTime.Now;

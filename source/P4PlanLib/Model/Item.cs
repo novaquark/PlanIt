@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace P4PlanLib.Model;
 
@@ -61,14 +62,6 @@ public class Item
 
     [JsonProperty("assignedTo")]
     public AssignedTo[]? AssignedTo { get; set; }
-    [JsonProperty("start")]
-    public DateTime? StartDate { get; set; }
-
-    [JsonProperty("finish")]
-    public DateTime? EndDate { get; set; }
-
-    [JsonProperty("points")]
-    public int? Points { get; set; }
 
     public string GetItemLink()
     {
@@ -94,11 +87,11 @@ public class Item
 
 public enum ItemType
 {
-    Backlog,
+    [Display(Name = "Scheduled Task")]
+    ScheduledTask,
+    [Display(Name = "Backlog Task")]
+    BacklogTask,
     Bug,
     Sprint,
-    Showstopper,
-    Epic,
-    Story,
-    Task
+    Release
 }
