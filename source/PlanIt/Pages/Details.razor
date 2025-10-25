@@ -27,12 +27,7 @@ else
                             CurrentItem="item" />
             </MudItem>
             <MudItem xs="3">
-                <CommentsSection Comments="comments"
-                                 NewCommentText="@newCommentText"
-                                 PostingComment="postingComment"
-                                 PostCommentError="@postCommentError"
-                                 OnPostComment="PostCommentAsync"
-                                 OnNewCommentTextChanged="OnNewCommentTextChanged" />
+                <CommentsSection Id="@id" />
             </MudItem>
         </MudGrid>
     </MudContainer>
@@ -42,20 +37,10 @@ else
     [Parameter]
     public string? id { get; set; }
 
-    private Item? item;
-    private List<Comment> comments = new();
-    private string newCommentText = string.Empty;
-    private bool postingComment = false;
-    private string postCommentError = string.Empty;
+    private Item? item;    
     private string shareButtonText = "Share";
     private List<Item>? parentChildren = null;
-    private P4PlanLib.IP4PlanClient? p4PlanClient;
-
-    private async Task OnNewCommentTextChanged(string value)
-    {
-        newCommentText = value;
-        StateHasChanged();
-    }
+    private P4PlanLib.IP4PlanClient? p4PlanClient;    
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,7 +54,6 @@ else
                 Navigation.NavigateTo("/");
                 return;
             }
-
             item = await p4PlanClient.GetBacklogItem(id);
         }
     }
@@ -97,40 +81,5 @@ else
             shareButtonText = "Share";
             StateHasChanged();
         }
-    }
-
-    private async Task PostCommentAsync(string commentText)
-    {
-        if (p4PlanClient is null)
-            return;
-
-        postCommentError = string.Empty;
-        postingComment = true;
-        try
-        {
-            if (!string.IsNullOrEmpty(id))
-            {
-                var success = await p4PlanClient.PostComment(id, commentText);
-                if (success)
-                {
-                    newCommentText = string.Empty;
-                    comments = await p4PlanClient.GetComments(id);
-                }
-                else
-                {
-                    postCommentError = "Failed to post comment.";
-                }
-            }
-            else
-            {
-                postCommentError = "Invalid item id.";
-            }
-        }
-        catch (Exception ex)
-        {
-            postCommentError = ex.Message;
-        }
-        postingComment = false;
-        StateHasChanged();
-    }
+    }    
 }
