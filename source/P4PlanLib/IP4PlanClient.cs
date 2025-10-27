@@ -12,6 +12,7 @@ public interface IP4PlanClient
     Task<Item?> GetBacklogItem(string id);
     Task<Item?> GetBug(string id);
     Task<List<Item>> Search(string query);
+    Task<List<Item>> GetTodoListAsync(string userID);
     Task<List<Comment>> GetComments(string itemId);
     Task<bool> PostComment(string itemId, string text);
     Task<List<Item>> GetItemChildrenAsync(string backlogEntryId, bool includeCompletedTasks = false);

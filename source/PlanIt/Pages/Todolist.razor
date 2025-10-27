@@ -74,7 +74,6 @@ else
     {
         if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false && !loaded)
         {
-            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
             var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
             var p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
             if (p4PlanClient is null)
@@ -82,21 +81,20 @@ else
                 Navigation.NavigateTo("/");
                 return;
             }
+            var allItems = await p4PlanClient.GetTodoListAsync("");
 
-            var comparer = new P4PlanLib.ItemComparer();
+            // Categorize items by type for ranking
+            myOpenShowstoppers = allItems.Where(i => TypeString(i) == "Showstopper").ToList();
+            mySprintItems = allItems.Where(i => TypeString(i) == "Sprint").ToList();
+            myOpenBugs = allItems.Where(i => TypeString(i) == "Bug").ToList();
+            myBacklog = allItems.Where(i => TypeString(i) == "Backlog").ToList();
 
-            myOpenBugs = await p4PlanClient.Search($"\"Item type\"=bug and Severity >\"Severity B\" and \"Assigned to\":\"{displayName}\"");
-            myOpenShowstoppers = await p4PlanClient.Search($"\"Item type\"=bug and Severity <=\"Severity B\" and \"Assigned to\":\"{displayName}\"");
-            mySprintItems = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assigned to\":\"{displayName}\" and \"Committed to\":\"{ProjectDetailsService.CurrentSprint}\"");
-            myBacklog = await p4PlanClient.Search($"\"Item type\"=\"backlog item\" and \"Assign tag\":\"{displayName}\"");
-            myBacklog = myBacklog.Except(mySprintItems, comparer).ToList();
-
+            // Build ranked list: Showstoppers > Sprint items > Open bugs > Backlog
             rankedList = new List<P4PlanLib.Model.Item>();
             rankedList.AddRange(myOpenShowstoppers);
-            rankedList.AddRange(mySprintItems.Except(rankedList, comparer));
-            rankedList.AddRange(myOpenBugs.Except(rankedList, comparer));
-            rankedList.AddRange(myBacklog.Except(rankedList, comparer));
-
+            rankedList.AddRange(mySprintItems);
+            rankedList.AddRange(myOpenBugs);
+            rankedList.AddRange(myBacklog);
             for(var i = 0 ; i < rankedList.Count ; i++)
             {
                 rankedList[i].Rank = i + 1;
