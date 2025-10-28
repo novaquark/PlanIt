@@ -1,16 +1,20 @@
 @using P4PlanLib.Model
+@using System.Security.Claims
+@inject IP4PlanClientProvider P4PlanClientProvider
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
 <MudStack Spacing="2" Style="min-width:300px;">
 
     <!-- Header -->
     <MudText Typo="Typo.h6" FontWeight="FontWeight.SemiBold">
-        Comments (@Comments.Count)
+        Comments (@comments.Count)
     </MudText>
 
     <!-- Comments List -->
     <MudPaper Elevation="3" Class="rounded-xl bg-white"
               Style="flex:1;min-height:300px;max-height:400px;overflow:hidden;display:flex;flex-direction:column;">
 
-        @if (Comments.Count == 0)
+        @if (comments.Count == 0)
         {
             <MudStack AlignItems="AlignItems.Center" JustifyContent="Center" Spacing="1" Class="py-8 text-gray-400">
                 <MudText Typo="Typo.h4">💬</MudText>
@@ -20,7 +24,7 @@
         else
         {
             <MudStack Spacing="3">
-                @foreach (var comment in Comments)
+                @foreach (var comment in comments)
                 {
                     <MudPaper Class="pb-4 border-b border-gray-100" Elevation="0">
                         <!-- Comment Header -->
@@ -73,21 +77,21 @@
             Add a comment
         </MudText>
 
-        <MudTextField @bind-Value="NewCommentText"
+        <MudTextField @bind-Value="newCommentText"
                       Placeholder="Write your comment here..."
                       Lines="4"
                       Variant="Variant.Outlined"
                       Class="w-full mb-4"
                       Immediate="true"
-                      OnBlur="@(async _ => await OnNewCommentTextChanged.InvokeAsync(NewCommentText))" />
+                      OnBlur="@(async _ => await PostCommentAsync(newCommentText))" />
 
         <MudStack Row="true" JustifyContent="SpaceBetween" AlignItems="AlignItems.Center">
-            <MudButton OnClick="PostComment"
+            <MudButton OnClick="@(async () => await PostCommentAsync(newCommentText))"
                        Variant="Variant.Filled"
-                       Disabled="@((string.IsNullOrWhiteSpace(NewCommentText) || PostingComment))"
+                       Disabled="@((string.IsNullOrWhiteSpace(newCommentText) || postingComment))"
                        Color="Color.Primary"
                        Class="font-semibold">
-                @if (PostingComment)
+                @if (postingComment)
                 {
                     <MudText Typo="Typo.body2">🔄 Posting...</MudText>
                 }
@@ -97,10 +101,10 @@
                 }
             </MudButton>
 
-            @if (!string.IsNullOrEmpty(PostCommentError))
+            @if (!string.IsNullOrEmpty(postCommentError))
             {
                 <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="text-sm">
-                    ⚠️ @PostCommentError
+                    ⚠️ @postCommentError
                 </MudAlert>
             }
         </MudStack>
@@ -109,26 +113,63 @@
 
 @code {
     [Parameter]
-    public List<Comment> Comments { get; set; } = new();
-
-    [Parameter]
-    public string NewCommentText { get; set; } = string.Empty;
-
-    [Parameter]
-    public EventCallback<string> OnNewCommentTextChanged { get; set; }
-
-    [Parameter]
-    public bool PostingComment { get; set; }
-
-    [Parameter]
-    public string PostCommentError { get; set; } = string.Empty;
-
-    [Parameter]
-    public EventCallback<string> OnPostComment { get; set; }
-
-    private async Task PostComment()
+    public string? Id { get; set; }
+    private List<Comment> comments = new();
+    private string newCommentText = string.Empty;
+    private bool postingComment = false;
+    private string postCommentError = string.Empty;
+    private P4PlanLib.IP4PlanClient? p4PlanClient;
+    protected override async Task OnInitializedAsync()
     {
-        await OnPostComment.InvokeAsync(NewCommentText);
+        if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false)
+        {
+            var displayName = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Name).Value;
+            var email = HttpContextAccessor.HttpContext?.User.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            p4PlanClient = P4PlanClientProvider.GetP4PlanClient(email);
+            if (p4PlanClient is null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+            if (!string.IsNullOrEmpty(Id))
+            {
+                comments = await p4PlanClient.GetComments(Id);
+            }
+        }
+    }
+    private async Task PostCommentAsync(string commentText)
+    {
+        if (p4PlanClient is null)
+            return;
+
+        postCommentError = string.Empty;
+        postingComment = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                var success = await p4PlanClient.PostComment(Id, commentText);
+                if (success)
+                {
+                    newCommentText = string.Empty;
+                    comments = await p4PlanClient.GetComments(Id);
+                }
+                else
+                {
+                    postCommentError = "Failed to post comment.";
+                }
+            }
+            else
+            {
+                postCommentError = "Invalid item id.";
+            }
+        }
+        catch (Exception ex)
+        {
+            postCommentError = ex.Message;
+        }
+        postingComment = false;
+        StateHasChanged();
     }
 
     private IEnumerable<string> GetCommentUser(Comment comment)
