@@ -27,7 +27,7 @@ else if (!loaded)
 }
 else
 {
-    <FilterToolbar TModel="Item" TargetItems="rankedList" OnApplyFilter="HandleFilterApplied" />
+    <FilterToolbar TModel="Item" TargetItems="filterToolbarList" OnApplyFilter="HandleFilterApplied" />
     <MudDataGrid Items="rankedList" Hover="true" Striped="true" Dense="true" Bordered="true" FilterMode="DataGridFilterMode.Simple" FilterCaseSensitivity="DataGridFilterCaseSensitivity.CaseInsensitive" SortLabel="Sort by">
         <ColGroup>
             <col style="width: 50px;" />
@@ -66,6 +66,7 @@ else
 @code {
     private ObservableCollection<P4PlanLib.Model.Item>? dashboardItems { get; set; }
     private ObservableCollection<P4PlanLib.Model.Item>? rankedList { get; set; }
+    private List<P4PlanLib.Model.Item>? filterToolbarList { get; set; }
     private bool loaded { get; set; } = false;
 
     private P4PlanLib.IP4PlanClient? p4PlanClient;
@@ -105,6 +106,7 @@ else
             {
                 rankedList[i].Rank = i + 1;
             }
+            filterToolbarList = new List<P4PlanLib.Model.Item>(rankedList);
 
             loaded = true;
             StateHasChanged();
@@ -126,5 +128,6 @@ else
                 rankedList?.Add(item);
             }
         }
+        StateHasChanged();
     }
 }
