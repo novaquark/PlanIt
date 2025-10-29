@@ -493,6 +493,88 @@ public class P4PlanClient : IP4PlanClient
         return queryResults;
     }
 
+    public async Task<List<Item>> GetTodoListAsync(string userID)
+    {
+        var query = @"query {
+            todoList {
+              __typename
+              id
+              name
+              subprojectPath
+              ... on Bug {
+                severity
+                sprintPriority
+                workRemaining
+                committedTo {
+                  id
+                  name
+                }
+              }
+              ... on BacklogTask {
+                sprintPriority
+                workRemaining
+                committedTo {
+                  id
+                  name
+                }
+              }
+            }
+          }";
+
+        var request = new GraphQLRequest
+        {
+            Query = query
+        };
+
+        var response = await RunAsync<IEnumerable<dynamic>>(request, "todoList");
+
+        if (response is null)
+        {
+            return [];
+        }
+
+        var items = new List<Item>();
+        foreach (var item in response)
+        {
+            var parsedItem = ParseItemFromGraphQL(item);
+            if (parsedItem != null)
+            {
+                items.Add(parsedItem);
+            }
+        }
+
+        return items;
+    }
+
+    private Item? ParseItemFromGraphQL(dynamic graphqlItem)
+    {
+        try
+        {
+            var jObject = graphqlItem as JObject;
+            if (jObject == null)
+                return null;
+
+            var item = jObject.ToObject<Item>();
+            if (item == null)
+                return null;
+
+            // Set the Type based on __typename
+            var typename = jObject["__typename"]?.Value<string>();
+            item.Type = typename switch
+            {
+                "Bug" => ItemType.Bug,
+                "BacklogTask" => ItemType.BacklogTask,
+                _ => ItemType.BacklogTask
+            };
+
+            return item;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<List<Comment>> GetComments(string itemId)
     {
         var query = @"query comments($id: ID!) {
