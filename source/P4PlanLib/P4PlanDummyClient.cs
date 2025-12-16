@@ -716,6 +716,19 @@ namespace P4PlanLib
             return Task.FromResult(results);
         }
 
+        public Task<List<Item>> GetTodoListAsync(string userID)
+        {
+            // Return items assigned to the connected dev user (simulating authenticated user context)
+            // In production, the backend filters by authenticated user automatically
+            var userItems = _items.Values
+                .Where(item => item.AssignedTo != null &&
+                               item.AssignedTo.Any(assigned => assigned.User.Name == _connectedUserName))
+                .Take(20)
+                .ToList();
+
+            return Task.FromResult(userItems);
+        }
+
         public Task<IEnumerable<string>> GetPrioritiesAsync()
         {
             var order = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
